@@ -19,7 +19,7 @@ import com.wyllyw.huertoplan.navigation.AppScreens
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun SecondScreen(navController: NavController) {
+fun SectorScreen(navController: NavController) {
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     var menuExpanded by remember {

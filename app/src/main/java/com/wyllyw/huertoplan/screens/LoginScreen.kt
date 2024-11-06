@@ -48,7 +48,7 @@ fun BodyContent(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Primera pantalla")
-        Button(onClick = { navController.navigate(AppScreens.SecondScreen.route) }) {
+        Button(onClick = { navController.navigate(AppScreens.SectorScreen.route) }) {
             Text("Boton")
         }
     }
