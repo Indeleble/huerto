@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.wyllyw.huertoplan.navigation.AppNavigation
-import com.wyllyw.huertoplan.screens.FirstScreen
 import com.wyllyw.huertoplan.ui.theme.HuertoPlanTheme
 
 class MainActivity : ComponentActivity() {
