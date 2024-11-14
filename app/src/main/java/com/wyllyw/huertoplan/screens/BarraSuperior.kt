@@ -24,7 +24,7 @@ import com.wyllyw.huertoplan.navigation.AppScreens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BarraSuperior(navController: NavController) {
+fun BarraSuperior(navController: NavController, canGoBack: Boolean) {
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     var menuExpanded by remember {
@@ -42,11 +42,13 @@ fun BarraSuperior(navController: NavController) {
             )
         },
         navigationIcon = {
-            IconButton(onClick = { navController.navigate(AppScreens.LoginScreen.route) }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Localized description"
-                )
+            if (canGoBack) {
+                IconButton(onClick = { navController.navigate(AppScreens.SingUpScreen.route) }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Localized description"
+                    )
+                }
             }
         },
         actions = {
