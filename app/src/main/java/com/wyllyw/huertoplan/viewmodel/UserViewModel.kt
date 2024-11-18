@@ -1,6 +1,8 @@
 package com.wyllyw.huertoplan.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.wyllyw.huertoplan.model.Sector
+import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,16 +12,53 @@ import javax.inject.Inject
 @HiltViewModel
 class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel() {
 
-    private val _user = MutableStateFlow(repository.getUser())
+    private val _user = MutableStateFlow(User("", null))
     val user = _user.asStateFlow()
-    val repo = repository
+
+    private var repo = repository
+
+    private lateinit var terrainToShow: Terrain
+    private lateinit var sectorToShow: Sector
+
     init {
-        _user.value = repository.getUser();
+        repo = repository;
     }
 
     fun changeName(name: String) {
         val copy: User = _user.value.copy()
         copy.name = name
         _user.value = copy
+    }
+
+    fun setUser(login: String) {
+        _user.value = repo.getUser(login)
+    }
+
+    fun deleteTerrain(terrain: Terrain) {
+        var copy: User = _user.value.copy()
+        val terrains = _user.value.terrains
+        terrains?.remove(terrain)
+        copy.terrains = terrains
+        _user.value = copy
+    }
+
+    fun setTerrainToShow(terrain: Terrain){
+        terrainToShow = terrain
+    }
+
+    fun getTerrainToShow(): Terrain {
+        return terrainToShow
+    }
+
+    fun setSectorToShow(sector: Sector){
+        sectorToShow = sector
+    }
+
+    fun getSectorToShow(): Sector {
+        return sectorToShow
+    }
+
+    fun createTerrain(tName: String, tUb: String) {
+        _user.value.terrains?.add(Terrain(tName, tUb, ArrayList()))
     }
 }

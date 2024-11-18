@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -14,16 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.wyllyw.huertoplan.navigation.AppScreens
-import com.wyllyw.huertoplan.viewmodel.SignUpViewModel
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,15 +30,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
 
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,26 +48,26 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.wyllyw.huertoplan.viewmodel.UserViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun SingUpScreen (navController: NavController) {
+fun SingUpScreen (navController: NavController,  viewModel: UserViewModel) {
 
     //Declaramos estructura base la pantalla de login
     Scaffold(
         topBar = {
-            BarraSuperior(navController, false)
+            BarraSuperior(navController, "Login",false)
         },
     ) {
-        BodyContent(navController)
+        BodyContent(navController, viewModel)
     }
 
 }
 
 @Composable
-fun BodyContent(navController: NavController) {
+fun BodyContent(navController: NavController, viewModel: UserViewModel) {
 
     //Estructura de contenido de la pantalla
     Surface {
@@ -100,7 +90,7 @@ fun BodyContent(navController: NavController) {
                 value = credentials.pwd,
                 onChange = { data -> credentials = credentials.copy(pwd = data) },
                 submit = {
-                    if (!checkCredentials(credentials, context, navController)) credentials = Credentials()
+                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -115,7 +105,7 @@ fun BodyContent(navController: NavController) {
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    if (!checkCredentials(credentials, context, navController)) credentials = Credentials()
+                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
@@ -127,11 +117,13 @@ fun BodyContent(navController: NavController) {
     }
 }
 
-fun checkCredentials(creds: Credentials, context: Context, navController: NavController): Boolean {
-    if (creds.isNotEmpty() && creds.login == "admin") {
+fun checkCredentials(creds: Credentials, context: Context, navController: NavController, viewModel: UserViewModel): Boolean {
+    if (creds.isNotEmpty()) {
 
         //TODO Hacer algoooorrrrrr
-        navController.navigate(AppScreens.SectorScreen.route)
+
+        viewModel.setUser(creds.login)
+        navController.navigate(AppScreens.TerrenosScreen.route)
        //navController.setUser(new User())
 
         return true

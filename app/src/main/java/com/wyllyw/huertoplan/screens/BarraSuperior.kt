@@ -24,7 +24,7 @@ import com.wyllyw.huertoplan.navigation.AppScreens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BarraSuperior(navController: NavController, canGoBack: Boolean) {
+fun BarraSuperior(navController: NavController,title: String, canGoBack: Boolean) {
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     var menuExpanded by remember {
@@ -38,12 +38,12 @@ fun BarraSuperior(navController: NavController, canGoBack: Boolean) {
         ),
         title = {
             Text(
-                "Centered Top App Bar", maxLines = 1, overflow = TextOverflow.Ellipsis
+                title, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         },
         navigationIcon = {
             if (canGoBack) {
-                IconButton(onClick = { navController.navigate(AppScreens.SingUpScreen.route) }) {
+                IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Localized description"

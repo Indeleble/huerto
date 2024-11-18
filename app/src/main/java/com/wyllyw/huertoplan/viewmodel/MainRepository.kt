@@ -26,10 +26,48 @@ class MainRepository @Inject constructor() {
         return Random().nextInt(1000)
     }
 
-    fun getUser(): User {
+    fun getUser(name: String): User {
 
-        return User("Gustavo", listOf(Terrain("Parcela uno", "Asturias", listOf(Sector("Sector 1", listOf(
-            Bancal("Bancal 1")
-        ))))))
+        return User(
+            name, arrayListOf(
+                Terrain(
+                    "Terreno uno", "Asturias", arrayListOf(
+                        Sector(
+                            "Sector 1", arrayListOf(
+                                Bancal("Bancal 1"),
+                                Bancal("Bancal 2"),
+                                Bancal("Bancal 3")
+                            )
+                        ),
+                        Sector(
+                            "Sector 2", arrayListOf(
+                                Bancal("Bancal 1"),
+                                Bancal("Bancal 2"),
+                                Bancal("Bancal 3")
+                            )
+                        )
+                    )
+                ),
+                Terrain(
+                    "Terreno dos", "Salamanca", arrayListOf(
+                        Sector(
+                            "Sector 1", arrayListOf(
+                                Bancal("Bancal 1"),
+                                Bancal("Bancal 2"),
+                                Bancal("Bancal 3")
+                            )
+                        ),
+                        Sector(
+                            "Sector 2", arrayListOf(
+                                Bancal("Bancal 1"),
+                                Bancal("Bancal 2"),
+                                Bancal("Bancal 3")
+                            )
+                        )
+                    )
+                )
+            )
+
+        )
     }
 }
