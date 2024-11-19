@@ -31,18 +31,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.wyllyw.huertoplan.model.Terrain
 
 
 @Composable
-fun CreateTerrainDialog(
+fun CreateSectorDialog(
     showPopup: Boolean,
     onDismissRequest: () -> Unit,
-    onConfirmation: (name: String, ubicacion: String) -> Unit,
-
+    onConfirmation: (name: String, terreno: Terrain) -> Unit,
+    terrain: Terrain
 ) {
 
-    var tName by remember { mutableStateOf("") }
-    var tUb by remember { mutableStateOf("") }
+    var sName by remember { mutableStateOf("") }
+   // var tUb by remember { mutableStateOf("") }
 
     if (showPopup) {
         Dialog(onDismissRequest = { onDismissRequest() }) {
@@ -62,24 +63,17 @@ fun CreateTerrainDialog(
                 ) {
 
                     Text(
-                        text = "This is a dialog with buttons and an image.",
+                        text = "Crear un sector para el terreno: " + terrain.name,
                         modifier = Modifier.padding(16.dp),
                     )
 
                     Column {
 
-                        TerrainField(
-                            value = tName,
-                            label = "Terreno",
-                            placeholder = "Nombre del terreno",
-                            onChange = { data -> tName = data },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        TerrainField(
-                            value = tUb,
-                            label = "Ubicacion",
-                            placeholder = "Ubicacion del terreno",
-                            onChange = { data -> tUb = data },
+                        SectorField(
+                            value = sName,
+                            label = "Sector",
+                            placeholder = "Nombre del sector",
+                            onChange = { data -> sName = data },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -96,7 +90,7 @@ fun CreateTerrainDialog(
                             Text("Salir")
                         }
                         TextButton(
-                            onClick = { onConfirmation(tName, tUb) },
+                            onClick = { onConfirmation(sName, terrain) },
                             modifier = Modifier.padding(8.dp),
                         ) {
                             Text("Confirmar")
@@ -109,7 +103,7 @@ fun CreateTerrainDialog(
 }
 
 @Composable
-fun TerrainField(
+fun SectorField(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,

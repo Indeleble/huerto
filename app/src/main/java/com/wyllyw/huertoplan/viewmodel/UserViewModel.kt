@@ -61,4 +61,12 @@ class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel(
     fun createTerrain(tName: String, tUb: String) {
         _user.value.terrains?.add(Terrain(tName, tUb, ArrayList()))
     }
+
+    fun deleteSector(terrainToShow: Terrain, sector: Sector) {
+        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.remove(sector)
+    }
+
+    fun createSector(tName: String, terrain: Terrain) {
+        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.add(Sector(tName, ArrayList()))
+    }
 }
