@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
+import com.wyllyw.huertoplan.navigation.AppScreens
 import com.wyllyw.huertoplan.screens.popups.CreateSectorDialog
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 
@@ -66,6 +67,7 @@ fun SecondBodyContent(navController: NavController, viewModel: UserViewModel) {
                 Button(onClick = {
 
                     viewModel.setSectorToShow(sector)
+                    navController.navigate(AppScreens.BancalesScreen.route)
 
                 }) {
                     Column {
