@@ -34,21 +34,27 @@ class MainRepository @Inject constructor() {
                     "Terreno uno", "Asturias", arrayListOf(
                         Sector(
                             "Sector 1", arrayListOf(
-                                Bancal("Bancal 1"),
-                                Bancal("Bancal 2"),
-                                Bancal("Bancal 3")
+                                Bancal("Bancal 1",
+                                    id = 1,
+                                    x = 0f,
+                                    y = 0f,
+                                    width = 1f,
+                                    height = 5f
+                                )),
+                              //  Bancal("Bancal 2"),
+                              //  Bancal("Bancal 3")
                             )
                         ),
-                        Sector(
+                       /* Sector(
                             "Sector 2", arrayListOf(
-                                Bancal("Bancal 1"),
-                                Bancal("Bancal 2"),
-                                Bancal("Bancal 3")
+                              //  Bancal("Bancal 1"),
+                              //  Bancal("Bancal 2"),
+                              //  Bancal("Bancal 3")
                             )
-                        )
+                        )*/
                     )
                 ),
-                Terrain(
+               /* Terrain(
                     "Terreno dos", "Salamanca", arrayListOf(
                         Sector(
                             "Sector 1", arrayListOf(
@@ -65,9 +71,9 @@ class MainRepository @Inject constructor() {
                             )
                         )
                     )
-                )
+                )*/
             )
 
-        )
+
     }
 }
