@@ -1,6 +1,7 @@
 package com.wyllyw.huertoplan.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Sector
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
@@ -68,5 +69,23 @@ class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel(
 
     fun createSector(tName: String, terrain: Terrain) {
         _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.add(Sector(tName, ArrayList()))
+    }
+
+    fun addBancal(sector: Sector, bancal: Bancal) {
+        _user.value.terrains
+            ?.flatMap { it.sectors }
+            ?.find { it.name == sector.name }
+            ?.bancales
+            ?.add(bancal)
+        _user.value = _user.value.copy()
+    }
+
+    fun deleteBancal(sector: Sector, bancal: Bancal) {
+        _user.value.terrains
+            ?.flatMap { it.sectors }
+            ?.find { it.name == sector.name }
+            ?.bancales
+            ?.remove(bancal)
+        _user.value = _user.value.copy()
     }
 }
