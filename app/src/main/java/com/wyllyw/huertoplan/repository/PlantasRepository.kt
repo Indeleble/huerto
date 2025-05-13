@@ -34,15 +34,15 @@ class PlantasRepository(private val context: Context) {
             reader.readLine()
             
             reader.forEachLine { line ->
-                val (id, nombreComun, variedad, familiaId, nombreCientifico, tiempoRecoleccion) = line.split(",")
+                val partes = line.split(",")
                 plantas.add(
                     PlantaHorticola(
-                        id = id.toInt(),
-                        nombreComun = nombreComun,
-                        variedad = if (variedad.isBlank()) null else variedad,
-                        familiaId = familiaId.toInt(),
-                        nombreCientifico = nombreCientifico,
-                        tiempoRecoleccion = tiempoRecoleccion.toInt()
+                        id = partes[0].toInt(),
+                        nombreComun = partes[1],
+                        variedad = partes[2],
+                        familiaId = partes[3].toInt(),
+                        nombreCientifico = partes[4],
+                        tiempoRecoleccion = partes[5].toInt()
                     )
                 )
             }

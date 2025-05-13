@@ -11,14 +11,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @HiltViewModel
-class UserViewModel @Inject constructor(repository: MainRepository, context: Context) : ViewModel() {
+class UserViewModel @Inject constructor(
+    private val repository: MainRepository,
+    @ApplicationContext private val context: Context
+) : ViewModel() {
 
     private val _user = MutableStateFlow(User("", null))
     val user = _user.asStateFlow()
-
-    private var repo = repository
 
     private lateinit var terrainToShow: Terrain
     private lateinit var sectorToShow: Sector
@@ -26,7 +28,7 @@ class UserViewModel @Inject constructor(repository: MainRepository, context: Con
     private val plantasRepository = PlantasRepository(context)
 
     init {
-        repo = repository;
+        _user.value = repository.getUser("")
     }
 
     fun changeName(name: String) {
@@ -36,7 +38,7 @@ class UserViewModel @Inject constructor(repository: MainRepository, context: Con
     }
 
     fun setUser(login: String) {
-        _user.value = repo.getUser(login)
+        _user.value = repository.getUser(login)
     }
 
     fun deleteTerrain(terrain: Terrain) {

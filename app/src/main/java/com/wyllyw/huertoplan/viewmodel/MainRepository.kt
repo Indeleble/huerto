@@ -1,5 +1,6 @@
 package com.wyllyw.huertoplan.viewmodel
 
+import android.content.Context
 import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Sector
 import com.wyllyw.huertoplan.model.Terrain
@@ -14,7 +15,7 @@ import javax.inject.Singleton
  * how to make an instance of this class
  */
 @Singleton
-class MainRepository @Inject constructor() {
+class MainRepository @Inject constructor(context: Context) {
 
     /**
      * Mocking internet call, in real case this function will fetch a new integer
