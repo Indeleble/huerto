@@ -1,0 +1,21 @@
+id,nombre_comun,variedad,familia_id,nombre_cientifico,tiempo_recoleccion
+1,Tomate,Raf,1,Solanum lycopersicum,90
+2,Tomate,Cherry,1,Solanum lycopersicum,70
+3,Pimiento,Morrón,1,Capsicum annuum,90
+4,Berenjena,Black Beauty,1,Solanum melongena,100
+5,Calabaza,Butternut,2,Cucurbita moschata,120
+6,Pepino,Español,2,Cucumis sativus,60
+7,Melón,Galia,2,Cucumis melo,90
+8,Col,Repollo,3,Brassica oleracea var. capitata,90
+9,Brocoli,Calabrese,3,Brassica oleracea var. italica,80
+10,Coliflor,Blanca,3,Brassica oleracea var. botrytis,85
+11,Judía,Verde,4,Phaseolus vulgaris,60
+12,Guisante,Enano,4,Pisum sativum,70
+13,Haba,Blanca,4,Vicia faba,90
+14,Espinaca,Hoja lisa,5,Spinacia oleracea,45
+15,Acelga,Verde,5,Beta vulgaris var. cicla,60
+16,Remolacha,Redonda,5,Beta vulgaris,70
+17,Zanahoria,Nantes,6,Daucus carota,80
+18,Apio,Verde,6,Apium graveolens,100
+19,Perejil,Común,6,Petroselinum crispum,70
+20,Hinojo,Común,6,Foeniculum vulgare,90 

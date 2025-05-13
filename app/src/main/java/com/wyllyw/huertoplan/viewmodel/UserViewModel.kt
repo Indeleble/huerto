@@ -1,17 +1,19 @@
 package com.wyllyw.huertoplan.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Sector
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
+import com.wyllyw.huertoplan.repository.PlantasRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel() {
+class UserViewModel @Inject constructor(repository: MainRepository, context: Context) : ViewModel() {
 
     private val _user = MutableStateFlow(User("", null))
     val user = _user.asStateFlow()
@@ -20,6 +22,8 @@ class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel(
 
     private lateinit var terrainToShow: Terrain
     private lateinit var sectorToShow: Sector
+
+    private val plantasRepository = PlantasRepository(context)
 
     init {
         repo = repository;
