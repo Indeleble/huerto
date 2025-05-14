@@ -19,7 +19,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val userViewModel: UserViewModel = hiltViewModel()
     NavHost(navController = navController, startDestination = AppScreens.SingUpScreen.route, enterTransition =  { slideIntoContainer(
-        AnimatedContentTransitionScope.SlideDirection.Start, tween(500)) },) {
+        AnimatedContentTransitionScope.SlideDirection.Start, tween(200)) },) {
         composable(route = AppScreens.SingUpScreen.route) { SingUpScreen(navController, userViewModel) }
         composable(route = AppScreens.TerrenosScreen.route) { TerrenosScreen(navController, userViewModel) }
         composable(route = AppScreens.SectoresScreen.route) { SectoresScreen(navController, userViewModel) }
