@@ -1,6 +1,7 @@
 package com.wyllyw.huertoplan.screens
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -32,6 +33,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import com.wyllyw.huertoplan.ui.components.HuertoOutlinedButton
 import com.wyllyw.huertoplan.ui.components.HuertoTextField
 import com.wyllyw.huertoplan.ui.components.HuertoTopAppBar
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import kotlin.math.abs
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -81,6 +84,8 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
     var canvasOffset by remember { mutableStateOf(Offset.Zero) }
     var lastDragPosition by remember { mutableStateOf(Offset.Zero) }
     var isDraggingCanvas by remember { mutableStateOf(false) }
+    var lastClickTime by remember { mutableStateOf(0L) }
+    var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
     var state by remember { mutableStateOf(true) }
 
     // Obtener los colores del tema una vez aquí
@@ -108,6 +113,50 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val currentTime = System.currentTimeMillis()
+                                    val position = event.changes.first().position
+                                    val touchPoint = position - canvasOffset
+
+                                    Log.d("BancalesScreen", "Evento recibido: ${event.type}")
+                                    Log.d("BancalesScreen", "Tiempo desde último clic: ${currentTime - lastClickTime}ms")
+                                    Log.d("BancalesScreen", "Posición: ${position.x}, ${position.y}")
+
+                                    if (event.type == PointerEventType.Press) {
+                                        if (currentTime - lastClickTime < 300) {
+                                            Log.d("BancalesScreen", "Posible doble clic detectado")
+                                            // Buscar bancal en la posición del clic
+                                            val clickedBancal = sector.bancales.find { bancal ->
+                                                val x = bancal.x * 100f
+                                                val y = bancal.y * 100f
+                                                val w = bancal.width * 100f
+                                                val h = bancal.height * 100f
+                                                val touchArea = 50f
+                                                val isInside = touchPoint.x in (x - touchArea)..(x + w + touchArea) &&
+                                                             touchPoint.y in (y - touchArea)..(y + h + touchArea)
+                                                
+                                                Log.d("BancalesScreen", "Comprobando bancal ${bancal.name}: x=$x, y=$y, w=$w, h=$h")
+                                                Log.d("BancalesScreen", "Touch point: ${touchPoint.x}, ${touchPoint.y}")
+                                                Log.d("BancalesScreen", "¿Dentro del bancal?: $isInside")
+                                                
+                                                isInside
+                                            }
+                                            
+                                            if (clickedBancal != null) {
+                                                Log.d("BancalesScreen", "Bancal encontrado: ${clickedBancal.name}")
+                                                bancalToEdit = clickedBancal
+                                                continue
+                                            }
+                                        }
+                                        lastClickTime = currentTime
+                                        lastClickPosition = position
+                                    }
+                                }
+                            }
+                        }
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = { offset ->
