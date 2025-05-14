@@ -1,6 +1,7 @@
 package com.wyllyw.huertoplan.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -148,7 +149,8 @@ fun HuertoTextField(
     label: String,
     enabled: Boolean = true,
     isError: Boolean = false,
-    supportingText: String? = null
+    supportingText: String? = null,
+    keyboardOptions: KeyboardOptions
 ) {
     val colors = MaterialTheme.colorScheme
     OutlinedTextField(
@@ -158,6 +160,7 @@ fun HuertoTextField(
         label = { Text(label) },
         enabled = enabled,
         isError = isError,
+        keyboardOptions = keyboardOptions,
         supportingText = if (supportingText != null) {
             { Text(supportingText) }
         } else null,

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -79,6 +81,7 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
     var canvasOffset by remember { mutableStateOf(Offset.Zero) }
     var lastDragPosition by remember { mutableStateOf(Offset.Zero) }
     var isDraggingCanvas by remember { mutableStateOf(false) }
+    var state by remember { mutableStateOf(true) }
 
     // Obtener los colores del tema una vez aquí
     val colors = MaterialTheme.colorScheme
@@ -88,8 +91,6 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
     val selectedBancalBorderColor = colors.primary
     val textColor = colors.onSurface.toArgb()
     val textSecondaryColor = colors.onSurfaceVariant.toArgb()
-
-    var state by remember { mutableStateOf(true) }
 
     key(state) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -118,7 +119,7 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
                                         val h = bancal.height * 100f
                                         val touchArea = 50f
                                         touchPoint.x in (x - touchArea)..(x + w + touchArea) &&
-                                                touchPoint.y in (y - touchArea)..(y + h + touchArea)
+                                        touchPoint.y in (y - touchArea)..(y + h + touchArea)
                                     }
 
                                     if (selectedBancal == null) {
@@ -276,6 +277,7 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel) 
                     bancalToEdit!!.name = name
                     bancalToEdit!!.width = width.toFloatOrNull() ?: bancalToEdit!!.width
                     bancalToEdit!!.height = height.toFloatOrNull() ?: bancalToEdit!!.height
+                    state = !state
                     bancalToEdit = null
                 }
             )
@@ -303,21 +305,30 @@ fun CreateBancalDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = "Nombre del bancal",
-                    isError = isError && name.isBlank()
+                    isError = isError && name.isBlank(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text
+                    )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 HuertoTextField(
                     value = width,
                     onValueChange = { width = it },
                     label = "Ancho (metros)",
-                    isError = isError && (width.isBlank() || width.toFloatOrNull() == null)
+                    isError = isError && (width.isBlank() || width.toFloatOrNull() == null),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 HuertoTextField(
                     value = height,
                     onValueChange = { height = it },
                     label = "Alto (metros)",
-                    isError = isError && (height.isBlank() || height.toFloatOrNull() == null)
+                    isError = isError && (height.isBlank() || height.toFloatOrNull() == null),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    )
                 )
             }
         },
@@ -362,21 +373,30 @@ fun EditBancalDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = "Nombre del bancal",
-                    isError = isError && name.isBlank()
+                    isError = isError && name.isBlank(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text
+                    )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 HuertoTextField(
                     value = width,
                     onValueChange = { width = it },
                     label = "Ancho (metros)",
-                    isError = isError && (width.isBlank() || width.toFloatOrNull() == null)
+                    isError = isError && (width.isBlank() || width.toFloatOrNull() == null),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 HuertoTextField(
                     value = height,
                     onValueChange = { height = it },
                     label = "Alto (metros)",
-                    isError = isError && (height.isBlank() || height.toFloatOrNull() == null)
+                    isError = isError && (height.isBlank() || height.toFloatOrNull() == null),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    )
                 )
             }
         },
