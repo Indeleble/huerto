@@ -107,20 +107,16 @@ class UserViewModel @Inject constructor(
     }
 
     fun addBancal(sector: Sector, bancal: Bancal) {
-        _user.value.terrains
-            ?.flatMap { it.sectors }
-            ?.find { it.name == sector.name }
-            ?.bancales
-            ?.add(bancal)
+        _user.value.terrains?.forEach { terrain ->
+            terrain.sectors.find { it == sector }?.bancales?.add(bancal)
+        }
         _user.value = _user.value.copy()
     }
 
     fun deleteBancal(sector: Sector, bancal: Bancal) {
-        _user.value.terrains
-            ?.flatMap { it.sectors }
-            ?.find { it.name == sector.name }
-            ?.bancales
-            ?.remove(bancal)
+        _user.value.terrains?.forEach { terrain ->
+            terrain.sectors.find { it == sector }?.bancales?.remove(bancal)
+        }
         _user.value = _user.value.copy()
     }
 }
