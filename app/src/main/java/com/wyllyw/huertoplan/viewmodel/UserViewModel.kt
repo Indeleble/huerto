@@ -66,15 +66,44 @@ class UserViewModel @Inject constructor(
     }
 
     fun createTerrain(tName: String, tUb: String) {
-        _user.value.terrains?.add(Terrain(tName, tUb, ArrayList()))
+        val newTerrain = Terrain(tName, tUb, ArrayList())
+        newTerrain.sectors.add(Sector("Sector 1", ArrayList()))
+        _user.value.terrains?.add(newTerrain)
+        _user.value = _user.value.copy()
     }
 
-    fun deleteSector(terrainToShow: Terrain, sector: Sector) {
-        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.remove(sector)
+    fun updateTerrain(terrain: Terrain, newName: String, newLocation: String) {
+        val terrainIndex = _user.value.terrains?.indexOf(terrain)
+        if (terrainIndex != null && terrainIndex != -1) {
+            val updatedTerrain = terrain.copy(
+                name = newName,
+                Location = newLocation
+            )
+            _user.value.terrains?.set(terrainIndex, updatedTerrain)
+            _user.value = _user.value.copy()
+        }
+    }
+
+    fun deleteSector(terrain: Terrain, sector: Sector) {
+        _user.value.terrains?.find { it.name == terrain.name }?.sectors?.remove(sector)
+        _user.value = _user.value.copy()
     }
 
     fun createSector(tName: String, terrain: Terrain) {
-        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.add(Sector(tName, ArrayList()))
+        _user.value.terrains?.find { it.name == terrain.name }?.sectors?.add(Sector(tName, ArrayList()))
+        _user.value = _user.value.copy()
+    }
+
+    fun updateSector(terrain: Terrain, sector: Sector, newName: String) {
+        val terrainIndex = _user.value.terrains?.indexOf(terrain)
+        if (terrainIndex != null && terrainIndex != -1) {
+            val sectorIndex = _user.value.terrains?.get(terrainIndex)?.sectors?.indexOf(sector)
+            if (sectorIndex != null && sectorIndex != -1) {
+                val updatedSector = sector.copy(name = newName)
+                _user.value.terrains?.get(terrainIndex)?.sectors?.set(sectorIndex, updatedSector)
+                _user.value = _user.value.copy()
+            }
+        }
     }
 
     fun addBancal(sector: Sector, bancal: Bancal) {
