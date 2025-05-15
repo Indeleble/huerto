@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "633866321089",
+    "project_id": "huertoplan-f78e1",
+    "storage_bucket": "huertoplan-f78e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633866321089:android:7f778d4b822ef2698e6840",
+        "android_client_info": {
+          "package_name": "com.wyllyw.huertoplan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl4IOP8ZputVf3TkKhvpKf5C-TuWSXut0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
