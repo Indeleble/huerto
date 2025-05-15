@@ -8,9 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wyllyw.huertoplan.screens.BancalesScreen
-import com.wyllyw.huertoplan.screens.SectoresScreen
-import com.wyllyw.huertoplan.screens.SingUpScreen
-import com.wyllyw.huertoplan.screens.TerrenosScreen
+import com.wyllyw.huertoplan.screens.LoginScreen
+import com.wyllyw.huertoplan.screens.RegisterScreen
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 
 
@@ -18,11 +17,10 @@ import com.wyllyw.huertoplan.viewmodel.UserViewModel
 fun AppNavigation() {
     val navController = rememberNavController()
     val userViewModel: UserViewModel = hiltViewModel()
-    NavHost(navController = navController, startDestination = AppScreens.SingUpScreen.route, enterTransition =  { slideIntoContainer(
+    NavHost(navController = navController, startDestination = AppScreens.LoginScreen.route, enterTransition =  { slideIntoContainer(
         AnimatedContentTransitionScope.SlideDirection.Start, tween(200)) },) {
-        composable(route = AppScreens.SingUpScreen.route) { SingUpScreen(navController, userViewModel) }
-        composable(route = AppScreens.TerrenosScreen.route) { TerrenosScreen(navController, userViewModel) }
-        composable(route = AppScreens.SectoresScreen.route) { SectoresScreen(navController, userViewModel) }
+        composable(route = AppScreens.LoginScreen.route) { LoginScreen(navController) }
+        composable(route = AppScreens.RegisterScreen.route) { RegisterScreen(navController) }
         composable(route = AppScreens.BancalesScreen.route) { BancalesScreen(navController, userViewModel) }
     }
 

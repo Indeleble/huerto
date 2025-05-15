@@ -1,47 +1,40 @@
 package com.wyllyw.huertoplan.screens
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
-import com.wyllyw.huertoplan.navigation.AppScreens
-import android.content.Context
-import android.widget.Toast
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
-
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -49,30 +42,39 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.google.firebase.auth.AuthResult
+import com.google.firebase.auth.FirebaseAuth
+import com.wyllyw.huertoplan.navigation.AppScreens
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun SingUpScreen (navController: NavController,  viewModel: UserViewModel) {
+fun RegisterScreen(navController: NavController) {
 
     //Declaramos estructura base la pantalla de login
     Scaffold(
         topBar = {
-            BarraSuperior(navController, "Login",false)
+            BarraSuperior(navController, "Registro", true)
         },
     ) {
-        BodyContent(navController, viewModel)
+        RegisterBodyContent(navController)
     }
 
 }
 
 @Composable
-fun BodyContent(navController: NavController, viewModel: UserViewModel) {
-
+fun RegisterBodyContent(navController: NavController) {
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogTitle by remember { mutableStateOf("") }
+    var dialogText by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    
     //Estructura de contenido de la pantalla
     Surface {
         var credentials by remember { mutableStateOf(Credentials()) }
-        val context = LocalContext.current
+        val userViewModel: UserViewModel = hiltViewModel()
 
         Column(
             verticalArrangement = Arrangement.Center,
@@ -81,92 +83,112 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
         ) {
-            LoginField(
+            MailField(
                 value = credentials.login,
                 onChange = { data -> credentials = credentials.copy(login = data) },
                 modifier = Modifier.fillMaxWidth()
             )
-            PasswordField(
+            PasswordRegisterField(
                 value = credentials.pwd,
                 onChange = { data -> credentials = credentials.copy(pwd = data) },
                 submit = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
+                    registerNewUser(credentials, navController, userViewModel) { title, text, error ->
+                        dialogTitle = title
+                        dialogText = text
+                        isError = error
+                        showDialog = true
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(10.dp))
-            LabeledCheckbox(
-                label = "Remember Me",
-                onCheckChanged = {
-                    credentials = credentials.copy(remember = !credentials.remember)
-                },
-                isChecked = credentials.remember
-            )
+
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
+                    registerNewUser(credentials, navController, userViewModel) { title, text, error ->
+                        dialogTitle = title
+                        dialogText = text
+                        isError = error
+                        showDialog = true
+                    }
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Login")
+                Text("Registrar")
+            }
+
+            if (showDialog) {
+                AlertDialogExample(
+                    onDismissRequest = { showDialog = false },
+                    dialogTitle = dialogTitle,
+                    dialogText = dialogText,
+                    icon = if (isError) Icons.Default.Error else Icons.Default.Check
+                )
             }
         }
     }
 }
 
-fun checkCredentials(creds: Credentials, context: Context, navController: NavController, viewModel: UserViewModel): Boolean {
-    if (creds.isNotEmpty()) {
-
-        //TODO Hacer algoooorrrrrr
-
-        viewModel.setUser(creds.login)
-        navController.navigate(AppScreens.TerrenosScreen.route)
-       //navController.setUser(new User())
-
-        return true
-    } else {
-        Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_SHORT).show()
-        return false
-    }
-}
-
-//Clase para definir los campos de login
-data class Credentials(
-    var login: String = "",
-    var pwd: String = "",
-    var remember: Boolean = false
+fun registerNewUser(
+    credentials: Credentials,
+    navController: NavController,
+    userViewModel: UserViewModel,
+    onResult: (String, String, Boolean) -> Unit
 ) {
-    fun isNotEmpty(): Boolean {
-        return login.isNotEmpty() && pwd.isNotEmpty()
-    }
-}
-
-
-@Composable
-fun LabeledCheckbox(
-    label: String,
-    onCheckChanged: () -> Unit,
-    isChecked: Boolean
-) {
-
-    Row(
-        Modifier
-            .clickable(
-                onClick = onCheckChanged
-            )
-            .padding(4.dp)
-    ) {
-        Checkbox(checked = isChecked, onCheckedChange = null)
-        Spacer(Modifier.size(6.dp))
-        Text(label)
-    }
+    FirebaseAuth.getInstance().createUserWithEmailAndPassword(credentials.login, credentials.pwd)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                userViewModel.setUser(credentials.login)
+                onResult("Éxito", "Usuario registrado correctamente", false)
+                navController.navigate(AppScreens.BancalesScreen.route)
+            } else {
+                val errorMessage = when {
+                    task.exception?.message?.contains("email address is already in use") == true -> 
+                        "El correo electrónico ya está registrado"
+                    task.exception?.message?.contains("badly formatted") == true -> 
+                        "El formato del correo electrónico no es válido"
+                    task.exception?.message?.contains("password is too weak") == true -> 
+                        "La contraseña es demasiado débil"
+                    else -> "Error al registrar usuario: ${task.exception?.message}"
+                }
+                onResult("Error", errorMessage, true)
+            }
+        }
 }
 
 @Composable
-fun LoginField(
+fun AlertDialogExample(
+    onDismissRequest: () -> Unit,
+    dialogTitle: String,
+    dialogText: String,
+    icon: ImageVector = Icons.Default.Check,
+) {
+    AlertDialog(
+        icon = {
+            Icon(icon, contentDescription = "Icono de diálogo")
+        },
+        title = {
+            Text(text = dialogTitle)
+        },
+        text = {
+            Text(text = dialogText)
+        },
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            Button(
+                onClick = onDismissRequest
+            ) {
+                Text("Aceptar")
+            }
+        }
+    )
+}
+
+@Composable
+fun MailField(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -177,9 +199,7 @@ fun LoginField(
     val focusManager = LocalFocusManager.current
     val leadingIcon = @Composable {
         Icon(
-            Icons.Default.Person,
-            contentDescription = "",
-            tint = MaterialTheme.colorScheme.primary
+            Icons.Default.Person, contentDescription = "", tint = MaterialTheme.colorScheme.primary
         )
     }
 
@@ -188,10 +208,11 @@ fun LoginField(
         onValueChange = onChange,
         modifier = modifier,
         leadingIcon = leadingIcon,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        keyboardActions = KeyboardActions(
-            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Next, keyboardType = KeyboardType.Email
         ),
+        keyboardActions = KeyboardActions(
+            onNext = { focusManager.moveFocus(FocusDirection.Down) }),
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
@@ -200,7 +221,7 @@ fun LoginField(
 }
 
 @Composable
-fun PasswordField(
+fun PasswordRegisterField(
     value: String,
     onChange: (String) -> Unit,
     submit: () -> Unit,
@@ -213,9 +234,7 @@ fun PasswordField(
 
     val leadingIcon = @Composable {
         Icon(
-            Icons.Default.Check,
-            contentDescription = "",
-            tint = MaterialTheme.colorScheme.primary
+            Icons.Default.Check, contentDescription = "", tint = MaterialTheme.colorScheme.primary
         )
     }
     val trailingIcon = @Composable {
@@ -236,12 +255,10 @@ fun PasswordField(
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Done,
-            keyboardType = KeyboardType.Password
+            imeAction = ImeAction.Done, keyboardType = KeyboardType.Password
         ),
         keyboardActions = KeyboardActions(
-            onDone = { submit() }
-        ),
+            onDone = { submit() }),
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
