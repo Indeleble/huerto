@@ -1,7 +1,7 @@
 package com.wyllyw.huertoplan.model
 
 data class FamiliaPlanta(
-    val id: Int,
+    var id: String,
     val nombre: String,
     val descripcion: String
 ) 

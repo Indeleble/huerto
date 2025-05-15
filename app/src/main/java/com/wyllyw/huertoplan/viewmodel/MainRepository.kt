@@ -1,6 +1,7 @@
 package com.wyllyw.huertoplan.viewmodel
 
 import android.content.Context
+import com.google.firebase.database.FirebaseDatabase
 import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.FamiliaPlanta
 import com.wyllyw.huertoplan.model.PlantaHorticola
@@ -19,29 +20,24 @@ import javax.inject.Singleton
 @Singleton
 class MainRepository @Inject constructor(private val context: Context) {
 
-    /**
-     * Mocking internet call, in real case this function will fetch a new integer
-     * from internet. And here we just mocked it by delaying 500 milli-seconds and
-     * then returning a new random number.
-     */
-    suspend fun fetchNewNumber(): Int {
-        delay(500)
-        return Random().nextInt(1000)
-    }
+    val db = FirebaseDatabase.getInstance()
 
     fun getUser(name: String): User {
         return User(
+            id = "iduser",
             name,
             arrayListOf(
                 Terrain(
+                    "TerrenoID",
                     "Terreno uno", "Asturias",
                     arrayListOf(
                         Sector(
+                            "SectorID",
                             "Sector 1",
                             arrayListOf(
                                 Bancal(
-                                    "Bancal 1",
-                                    id = 1,
+                                    name = "Bancal 1",
+                                    id = "IDDEBANCAL",
                                     x = 0f,
                                     y = 0f,
                                     width = 1f,
@@ -65,9 +61,7 @@ class MainRepository @Inject constructor(private val context: Context) {
                 val (id, nombre, descripcion) = line.split(",")
                 familias.add(
                     FamiliaPlanta(
-                        id = id.toInt(),
-                        nombre = nombre,
-                        descripcion = descripcion
+                        id = id.toString(), nombre = nombre, descripcion = descripcion
                     )
                 )
             }
@@ -85,7 +79,7 @@ class MainRepository @Inject constructor(private val context: Context) {
                 val partes = line.split(",")
                 plantas.add(
                     PlantaHorticola(
-                        id = partes[0].toInt(),
+                        id = partes[0].toString(),
                         nombreComun = partes[1],
                         variedad = if (partes[2].isBlank()) null else partes[2],
                         familiaId = partes[3].toInt(),
@@ -102,7 +96,7 @@ class MainRepository @Inject constructor(private val context: Context) {
         return getPlantas().filter { it.familiaId == familiaId }
     }
 
-    fun getFamiliaPorId(familiaId: Int): FamiliaPlanta? {
+    fun getFamiliaPorId(familiaId: String): FamiliaPlanta? {
         return getFamilias().find { it.id == familiaId }
     }
 
