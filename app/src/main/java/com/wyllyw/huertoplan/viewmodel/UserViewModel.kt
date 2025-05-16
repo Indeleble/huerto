@@ -6,12 +6,13 @@ import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Sector
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
-import com.wyllyw.huertoplan.repository.PlantasRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
@@ -19,13 +20,14 @@ class UserViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _user = MutableStateFlow(User("", null))
+    private val _user = MutableStateFlow(User(
+        "", "",
+        terrains = arrayListOf()
+    ))
     val user = _user.asStateFlow()
 
     private lateinit var terrainToShow: Terrain
     private lateinit var sectorToShow: Sector
-
-    private val plantasRepository = PlantasRepository(context)
 
     init {
         _user.value = repository.getUser("")
@@ -65,9 +67,11 @@ class UserViewModel @Inject constructor(
         return sectorToShow
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun createTerrain(tName: String, tUb: String) {
-        val newTerrain = Terrain(tName, tUb, ArrayList())
-        newTerrain.sectors.add(Sector("Sector 1", ArrayList()))
+        val uid: String = Uuid.random().toString();
+        val newTerrain = Terrain(uid, tName, tUb, ArrayList())
+        //newTerrain.sectors.add(Sector("Sector 1", ArrayList()))
         _user.value.terrains?.add(newTerrain)
         _user.value = _user.value.copy()
     }
@@ -89,8 +93,10 @@ class UserViewModel @Inject constructor(
         _user.value = _user.value.copy()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun createSector(tName: String, terrain: Terrain) {
-        _user.value.terrains?.find { it.name == terrain.name }?.sectors?.add(Sector(tName, ArrayList()))
+        val uid: String = Uuid.random().toString()
+        _user.value.terrains?.find { it.name == terrain.name }?.sectors?.add(Sector(uid, tName, ArrayList()))
         _user.value = _user.value.copy()
     }
 

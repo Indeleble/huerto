@@ -12,6 +12,7 @@ class AuthService @Inject constructor(
     private val auth: FirebaseAuth,
     private val database: FirebaseDatabase
 ) {
+    /*
     suspend fun signInAnonymously(): Result<String> {
         return try {
             val result = auth.signInAnonymously().await()
@@ -26,6 +27,8 @@ class AuthService @Inject constructor(
             Result.failure(e)
         }
     }
+
+     */
 
     fun getCurrentUser(): String? = auth.currentUser?.uid
 } 

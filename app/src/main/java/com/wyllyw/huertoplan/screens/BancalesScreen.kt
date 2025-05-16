@@ -72,9 +72,11 @@ import com.wyllyw.huertoplan.ui.components.HuertoTextField
 import com.wyllyw.huertoplan.ui.components.HuertoTopAppBar
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 import kotlin.math.abs
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
     val user by viewModel.user.collectAsStateWithLifecycle()
@@ -410,6 +412,7 @@ fun BancalItem(bancal: Bancal) {
     }
 }
 
+@ExperimentalUuidApi
 @Composable
 fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, sector: Sector, state: Boolean) {
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -639,10 +642,10 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
             CreateBancalDialog(
                 onDismiss = { showCreateDialog = false },
                 onConfirm = { name, width, height ->
-                    val id = (sector.bancales.maxOfOrNull { it.id } ?: 0) + 1
+                    val id = Uuid.random().toString()
                     val bancal = Bancal(
-                        name,
                         id,
+                        name,
                         0f,
                         0f,
                         width.toFloatOrNull() ?: 1f,
