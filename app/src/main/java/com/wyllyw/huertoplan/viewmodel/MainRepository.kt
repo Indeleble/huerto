@@ -23,32 +23,107 @@ class MainRepository @Inject constructor(private val context: Context) {
     val db = FirebaseDatabase.getInstance()
 
     fun getUser(name: String): User {
-        return User(
-            id = "iduser",
-            name,
-            arrayListOf(
-                Terrain(
-                    "TerrenoID",
-                    "Terreno uno", "Asturias",
-                    arrayListOf(
-                        Sector(
-                            "SectorID",
-                            "Sector 1",
-                            arrayListOf(
-                                Bancal(
-                                    name = "Bancal 1",
-                                    id = "IDDEBANCAL",
-                                    x = 0f,
-                                    y = 0f,
-                                    width = 1f,
-                                    height = 5f
-                                )
-                            ),
-                        )
-                    ),
-                )
-            ),
+        // Crear el usuario con su lista de IDs de terrenos
+        val userId = "iduser"
+        val terreno1Id = "TerrenoID"
+        val sector1Id = "SectorID"
+        val bancal1Id = "IDDEBANCAL"
+        
+        // Guardamos referencias a cada objeto usando sus IDs
+        val user = User(
+            id = userId,
+            name = name,
+            terrainsIds = listOf(terreno1Id)
         )
+        
+        // Aquí simularíamos guardar cada entidad por separado en la base de datos
+        // Terreno
+        val terreno = Terrain(
+            id = terreno1Id,
+            name = "Terreno uno",
+            Location = "Asturias",
+            userId = userId,
+            sectorsIds = listOf(sector1Id)
+        )
+        
+        // Sector
+        val sector = Sector(
+            id = sector1Id,
+            name = "Sector 1",
+            terrainId = terreno1Id,
+            bancalesIds = listOf(bancal1Id)
+        )
+        
+        // Bancal
+        val bancal = Bancal(
+            id = bancal1Id,
+            name = "Bancal 1",
+            sectorId = sector1Id,
+            x = 0f,
+            y = 0f,
+            width = 1f,
+            height = 5f
+        )
+        
+        // En una implementación real, estos objetos se guardarían en la base de datos
+        // y se recuperarían por sus IDs
+        
+        return user
+    }
+
+    // Función auxiliar para recuperar todos los terrenos asociados a un usuario
+    fun getTerrainsByUserId(userId: String): List<Terrain> {
+        // En una implementación real, esto buscaría en la BD los terrenos por userId
+        return if (userId == "iduser") {
+            listOf(
+                Terrain(
+                    id = "TerrenoID",
+                    name = "Terreno uno",
+                    Location = "Asturias",
+                    userId = userId,
+                    sectorsIds = listOf("SectorID")
+                )
+            )
+        } else {
+            emptyList()
+        }
+    }
+    
+    // Función auxiliar para recuperar todos los sectores asociados a un terreno
+    fun getSectorsByTerrainId(terrainId: String): List<Sector> {
+        // En una implementación real, esto buscaría en la BD los sectores por terrainId
+        return if (terrainId == "TerrenoID") {
+            listOf(
+                Sector(
+                    id = "SectorID",
+                    name = "Sector 1",
+                    terrainId = terrainId,
+                    bancalesIds = listOf("IDDEBANCAL")
+                )
+            )
+        } else {
+            emptyList()
+        }
+    }
+    
+    // Función auxiliar para recuperar todos los bancales asociados a un sector
+    fun getBancalesBySectorId(sectorId: String): List<Bancal> {
+        // En una implementación real, esto buscaría en la BD los bancales por sectorId
+        return if (sectorId == "SectorID") {
+            listOf(
+                Bancal(
+                    id = "IDDEBANCAL",
+                    name = "Bancal 1",
+                    sectorId = sectorId,
+                    x = 0f,
+                    y = 0f,
+                    width = 1f,
+                    height = 5f
+                )
+            )
+        } else {
+            emptyList()
+        }
     }
 
     fun getFamilias(): List<FamiliaPlanta> {

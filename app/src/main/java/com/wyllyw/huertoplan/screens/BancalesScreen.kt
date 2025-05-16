@@ -72,32 +72,35 @@ import com.wyllyw.huertoplan.ui.components.HuertoTextField
 import com.wyllyw.huertoplan.ui.components.HuertoTopAppBar
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 import kotlin.math.abs
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import java.util.UUID
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
     val user by viewModel.user.collectAsStateWithLifecycle()
-    var selectedTerreno by remember { mutableStateOf(user.terrains?.firstOrNull()) }
-    var selectedSector by remember { mutableStateOf(selectedTerreno?.sectors?.firstOrNull()) }
+    val terrains by viewModel.terrains.collectAsStateWithLifecycle()
+    val sectorsMap by viewModel.sectors.collectAsStateWithLifecycle()
+    val bancalesMap by viewModel.bancales.collectAsStateWithLifecycle()
+    val selectedTerrainId by viewModel.selectedTerrainId.collectAsStateWithLifecycle()
+    val selectedSectorId by viewModel.selectedSectorId.collectAsStateWithLifecycle()
+    
     var expandedTerreno by remember { mutableStateOf(false) }
     var expandedSector by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showCreateTerrenoDialog by remember { mutableStateOf(false) }
     var showCreateSectorDialog by remember { mutableStateOf(false) }
-    var state by remember { mutableStateOf(true) }
-
-    // Actualizar el sector seleccionado cuando cambia el terreno
-    LaunchedEffect(selectedTerreno) {
-        selectedSector = selectedTerreno?.sectors?.firstOrNull()
-        state = !state // Forzar actualización del canvas
+    var forceUpdate by remember { mutableStateOf(0) }
+    
+    // Obtener el terreno y sector seleccionados
+    val selectedTerrain = selectedTerrainId?.let { terrainId ->
+        terrains.find { it.id == terrainId }
     }
-
-    // Actualizar el estado cuando cambia el sector
-    LaunchedEffect(selectedSector) {
-        state = !state // Forzar actualización del canvas
+    
+    val selectedSector = if (selectedTerrainId != null && selectedSectorId != null) {
+        sectorsMap[selectedTerrainId]?.find { it.id == selectedSectorId }
+    } else {
+        null
     }
 
     Scaffold(
@@ -114,6 +117,13 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            // Debug info para desarrollo
+            Text(
+                text = "Terrenos: ${terrains.size}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+            
             // Selector de Terreno
             ExposedDropdownMenuBox(
                 expanded = expandedTerreno,
@@ -121,7 +131,7 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextField(
-                    value = selectedTerreno?.name ?: "",
+                    value = selectedTerrain?.name ?: "Sin terrenos",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Terreno") },
@@ -138,12 +148,13 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                     expanded = expandedTerreno,
                     onDismissRequest = { expandedTerreno = false }
                 ) {
-                    user.terrains?.forEach { terreno ->
+                    terrains.forEach { terreno ->
                         DropdownMenuItem(
                             text = { Text(terreno.name) },
                             onClick = {
-                                selectedTerreno = terreno
+                                viewModel.selectTerrain(terreno.id)
                                 expandedTerreno = false
+                                Log.d("BancalesScreen", "Terreno seleccionado: ${terreno.name}")
                             }
                         )
                     }
@@ -167,7 +178,7 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextField(
-                    value = selectedSector?.name ?: "",
+                    value = selectedSector?.name ?: "Sin sectores",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Sector") },
@@ -184,12 +195,17 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                     expanded = expandedSector,
                     onDismissRequest = { expandedSector = false }
                 ) {
-                    selectedTerreno?.sectors?.forEach { sector ->
+                    val terrainSectors = selectedTerrainId?.let { 
+                        sectorsMap[it] ?: emptyList() 
+                    } ?: emptyList()
+                    
+                    terrainSectors.forEach { sector ->
                         DropdownMenuItem(
                             text = { Text(sector.name) },
                             onClick = {
-                                selectedSector = sector
+                                viewModel.selectSector(sector.id)
                                 expandedSector = false
+                                Log.d("BancalesScreen", "Sector seleccionado: ${sector.name}")
                             }
                         )
                     }
@@ -208,8 +224,12 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
 
             // Botón de Editar
             Button(
-                onClick = { showEditDialog = true },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { 
+                    showEditDialog = true 
+                    Log.d("BancalesScreen", "Mostrar diálogo de edición")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = selectedTerrain != null && selectedSector != null
             ) {
                 Text("Editar")
             }
@@ -221,18 +241,29 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 BancalesBodyContent(
                     navController = navController,
                     viewModel = viewModel,
-                    sector = selectedSector!!,
-                    state = state
+                    sector = selectedSector,
+                    state = forceUpdate
                 )
+            } else {
+                // Mensaje cuando no hay sector seleccionado
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Selecciona o crea un terreno y un sector para comenzar",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
 
     // Diálogo de Edición
-    if (showEditDialog && selectedTerreno != null && selectedSector != null) {
-        var editedTerrenoName by remember { mutableStateOf(selectedTerreno!!.name) }
-        var editedTerrenoLocation by remember { mutableStateOf(selectedTerreno!!.Location) }
-        var editedSectorName by remember { mutableStateOf(selectedSector!!.name) }
+    if (showEditDialog && selectedTerrain != null && selectedSector != null) {
+        var editedTerrenoName by remember { mutableStateOf(selectedTerrain.name) }
+        var editedTerrenoLocation by remember { mutableStateOf(selectedTerrain.Location) }
+        var editedSectorName by remember { mutableStateOf(selectedSector.name) }
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -277,9 +308,11 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.updateTerrain(selectedTerreno!!, editedTerrenoName, editedTerrenoLocation)
-                        viewModel.updateSector(selectedTerreno!!, selectedSector!!, editedSectorName)
+                        Log.d("BancalesScreen", "Guardando cambios de edición")
+                        viewModel.updateTerrain(selectedTerrain, editedTerrenoName, editedTerrenoLocation)
+                        viewModel.updateSector(selectedTerrain, selectedSector, editedSectorName)
                         showEditDialog = false
+                        forceUpdate++ // Forzar actualización de la UI
                     }
                 ) {
                     Text("Guardar")
@@ -328,8 +361,10 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 TextButton(
                     onClick = {
                         if (newTerrenoName.isNotBlank() && newTerrenoLocation.isNotBlank()) {
+                            Log.d("BancalesScreen", "Creando terreno: $newTerrenoName")
                             viewModel.createTerrain(newTerrenoName, newTerrenoLocation)
                             showCreateTerrenoDialog = false
+                            forceUpdate++ // Forzar actualización de la UI
                         }
                     }
                 ) {
@@ -345,7 +380,7 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
     }
 
     // Diálogo de Crear Sector
-    if (showCreateSectorDialog && selectedTerreno != null) {
+    if (showCreateSectorDialog && selectedTerrain != null) {
         var newSectorName by remember { mutableStateOf("") }
 
         AlertDialog(
@@ -368,8 +403,10 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
                 TextButton(
                     onClick = {
                         if (newSectorName.isNotBlank()) {
-                            viewModel.createSector(newSectorName, selectedTerreno!!)
+                            Log.d("BancalesScreen", "Creando sector: $newSectorName en terreno: ${selectedTerrain.name}")
+                            viewModel.createSector(newSectorName, selectedTerrain)
                             showCreateSectorDialog = false
+                            forceUpdate++ // Forzar actualización de la UI
                         }
                     }
                 ) {
@@ -412,9 +449,16 @@ fun BancalItem(bancal: Bancal) {
     }
 }
 
-@ExperimentalUuidApi
 @Composable
-fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, sector: Sector, state: Boolean) {
+fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, sector: Sector, state: Int) {
+    // Obtener la lista de bancales para este sector
+    val bancalesList by viewModel.bancales.collectAsStateWithLifecycle()
+    
+    // Filtrar bancales para este sector específico
+    val sectorBancales = remember(sector.id, bancalesList, state) {
+        bancalesList[sector.id] ?: emptyList()
+    }
+    
     var showCreateDialog by remember { mutableStateOf(false) }
     var bancalToEdit by remember { mutableStateOf<Bancal?>(null) }
     var selectedBancal by remember { mutableStateOf<Bancal?>(null) }
@@ -425,20 +469,21 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
     var isDraggingCanvas by remember { mutableStateOf(false) }
     var lastClickTime by remember { mutableStateOf(0L) }
     var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
-    var state2 by remember { mutableStateOf(state) }
+    var internalState by remember { mutableStateOf(state) }
 
     // Resetear el estado cuando cambia el sector
     LaunchedEffect(sector) {
+        Log.d("BancalesScreen", "LaunchedEffect: Sector cambiado a ${sector.id}")
         selectedBancal = null
         dragOffset = Offset.Zero
         canvasOffset = Offset.Zero
         isDraggingCanvas = false
         bancalToEdit = null
-        lastClickTime = 0L // Resetear el tiempo del último clic
-        lastClickPosition = Offset.Zero // Resetear la posición del último clic
+        lastClickTime = 0L
+        lastClickPosition = Offset.Zero
     }
 
-    // Obtener los colores del tema una vez aquí
+    // Obtener los colores del tema
     val colors = MaterialTheme.colorScheme
     val bancalBackgroundColor = colors.surfaceVariant.copy(alpha = 0.2f)
     val selectedBancalBackgroundColor = colors.primaryContainer.copy(alpha = 0.3f)
@@ -447,7 +492,7 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
     val textColor = colors.onSurface.toArgb()
     val textSecondaryColor = colors.onSurfaceVariant.toArgb()
 
-    key(state2) {
+    key(internalState) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Canvas con scroll
             Box(
@@ -465,28 +510,48 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(sector) { // Añadir sector como key para resetear el pointerInput
+                        .pointerInput(sector.id) { // Usar sector.id como clave para reiniciar el pointerInput
                             awaitPointerEventScope {
                                 while (true) {
                                     val event = awaitPointerEvent()
                                     val currentTime = System.currentTimeMillis()
                                     val position = event.changes.first().position
-                                    val touchPoint = position - canvasOffset
-
+                                    
                                     if (event.type == PointerEventType.Press) {
+                                        // Verificar si se hizo clic en el botón "Eliminar" de algún bancal
+                                        sectorBancales.forEach { bancal ->
+                                            val x = bancal.x * 100f + canvasOffset.x
+                                            val y = bancal.y * 100f + canvasOffset.y
+                                            val deleteButtonY = y + bancal.height * 100f - 30f
+                                            
+                                            // Verificar si el clic está dentro del botón eliminar
+                                            if (position.x >= x + 10f && position.x <= x + 80f &&
+                                                position.y >= deleteButtonY && position.y <= deleteButtonY + 25f) {
+                                                Log.d("BancalesScreen", "Clic en botón eliminar del bancal: ${bancal.id}")
+                                                try {
+                                                    viewModel.deleteBancal(sector, bancal)
+                                                    // Forzar recomposición
+                                                    internalState = if (internalState == 0) 1 else 0
+                                                } catch (e: Exception) {
+                                                    Log.e("BancalesScreen", "Error al eliminar bancal: ${e.message}", e)
+                                                }
+                                                return@awaitPointerEventScope
+                                            }
+                                        }
+                                        
                                         if (currentTime - lastClickTime < 300) {
-                                            // Buscar bancal en la posición del clic
-                                            val clickedBancal = sector.bancales.find { bancal ->
+                                            // Doble clic para editar bancal
+                                            val clickedBancal = sectorBancales.find { bancal ->
                                                 val x = bancal.x * 100f + canvasOffset.x
                                                 val y = bancal.y * 100f + canvasOffset.y
                                                 val w = bancal.width * 100f
                                                 val h = bancal.height * 100f
-                                                val touchArea = 50f
-                                                position.x in (x - touchArea)..(x + w + touchArea) &&
-                                                position.y in (y - touchArea)..(y + h + touchArea)
+                                                position.x in x..(x + w) &&
+                                                position.y in y..(y + h)
                                             }
                                             
                                             if (clickedBancal != null) {
+                                                Log.d("BancalesScreen", "Bancal seleccionado para editar: ${clickedBancal.id}")
                                                 bancalToEdit = clickedBancal
                                                 continue
                                             }
@@ -497,33 +562,38 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
                                 }
                             }
                         }
-                        .pointerInput(sector) { // Añadir sector como key para resetear el pointerInput
+                        .pointerInput(sector.id) { // Usar sector.id como clave para reiniciar el pointerInput
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    val touchPoint = offset - canvasOffset
-                                    selectedBancal = sector.bancales.find { bancal ->
+                                    // Buscar si hay un bancal en esta posición
+                                    selectedBancal = sectorBancales.find { bancal ->
                                         val x = bancal.x * 100f + canvasOffset.x
                                         val y = bancal.y * 100f + canvasOffset.y
                                         val w = bancal.width * 100f
                                         val h = bancal.height * 100f
-                                        val touchArea = 50f
-                                        offset.x in (x - touchArea)..(x + w + touchArea) &&
-                                        offset.y in (y - touchArea)..(y + h + touchArea)
+                                        offset.x in x..(x + w) &&
+                                        offset.y in y..(y + h)
                                     }
 
-                                    if (selectedBancal == null) {
+                                    if (selectedBancal != null) {
+                                        Log.d("BancalesScreen", "Bancal seleccionado para arrastrar: ${selectedBancal?.id}")
+                                        dragOffset = Offset.Zero
+                                    } else {
                                         isDraggingCanvas = true
                                         lastDragPosition = offset
-                                    } else {
-                                        initialTouch = touchPoint
-                                        dragOffset = Offset.Zero
                                     }
                                 },
                                 onDragEnd = {
                                     if (selectedBancal != null) {
                                         selectedBancal?.let { bancal ->
-                                            bancal.x += dragOffset.x / 100f
-                                            bancal.y += dragOffset.y / 100f
+                                            val updatedBancal = bancal.copy(
+                                                x = bancal.x + dragOffset.x / 100f,
+                                                y = bancal.y + dragOffset.y / 100f
+                                            )
+                                            Log.d("BancalesScreen", "Actualizando posición de bancal: ${bancal.id} a (${updatedBancal.x}, ${updatedBancal.y})")
+                                            viewModel.updateBancal(updatedBancal)
+                                            // Forzar recomposición para actualizar la posición
+                                            internalState = if (internalState == 0) 1 else 0
                                         }
                                         selectedBancal = null
                                         dragOffset = Offset.Zero
@@ -542,7 +612,7 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
                         }
                 ) {
                     // Dibujar bancales
-                    sector.bancales.forEach { bancal ->
+                    sectorBancales.forEach { bancal ->
                         val x = if (bancal == selectedBancal) {
                             bancal.x * 100f + dragOffset.x + canvasOffset.x
                         } else {
@@ -602,11 +672,16 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
 
                             // Botón de eliminar
                             val deleteButtonY = y + bancal.height * 100f - 30f
+                            val paint = android.graphics.Paint()
+                            paint.color = colors.error.toArgb()
                             drawRect(
-                                color = colors.error,
-                                topLeft = Offset(x + 10f, deleteButtonY),
-                                size = Size(70f, 25f)
+                                x + 10f,
+                                deleteButtonY,
+                                x + 80f,
+                                deleteButtonY + 25f,
+                                paint
                             )
+                            
                             drawText(
                                 "Eliminar",
                                 x + 15f,
@@ -623,7 +698,10 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
 
             // Botón flotante para crear bancal
             HuertoFloatingActionButton(
-                onClick = { showCreateDialog = true },
+                onClick = { 
+                    Log.d("BancalesScreen", "Botón de crear bancal presionado") 
+                    showCreateDialog = true 
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
@@ -636,44 +714,66 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
             )
         }
 
-
         // Diálogos
         if (showCreateDialog) {
+            Log.d("BancalesScreen", "Mostrando diálogo de crear bancal")
             CreateBancalDialog(
-                onDismiss = { showCreateDialog = false },
+                onDismiss = { 
+                    Log.d("BancalesScreen", "Diálogo de crear bancal cancelado")
+                    showCreateDialog = false 
+                },
                 onConfirm = { name, width, height ->
-                    val id = Uuid.random().toString()
+                    Log.d("BancalesScreen", "Creando bancal: $name para el sector: ${sector.id}")
+                    // Generar un nuevo ID único
+                    val bancalId = UUID.randomUUID().toString()
+                    Log.d("BancalesScreen", "ID generado para el bancal: $bancalId")
+                    
                     val bancal = Bancal(
-                        id,
-                        name,
-                        0f,
-                        0f,
-                        width.toFloatOrNull() ?: 1f,
-                        height.toFloatOrNull() ?: 1f
+                        id = bancalId,
+                        name = name,
+                        sectorId = sector.id,
+                        x = 0f,
+                        y = 0f,
+                        width = width.toFloatOrNull() ?: 1f,
+                        height = height.toFloatOrNull() ?: 1f
                     )
-                    viewModel.addBancal(sector, bancal)
-                    state2 = !state2
-                    showCreateDialog = false
+                    Log.d("BancalesScreen", "Bancal creado: $bancal")
+                    
+                    try {
+                        viewModel.addBancal(sector, bancal)
+                        Log.d("BancalesScreen", "Bancal añadido correctamente, actualizando estado")
+                        internalState = if (internalState == 0) 1 else 0 // Toggle state to force recomposition
+                        showCreateDialog = false
+                    } catch (e: Exception) {
+                        Log.e("BancalesScreen", "Error al añadir bancal: ${e.message}", e)
+                    }
                 }
             )
         }
 
         if (bancalToEdit != null) {
+            Log.d("BancalesScreen", "Mostrando diálogo de editar bancal: ${bancalToEdit?.id}")
             EditBancalDialog(
                 bancal = bancalToEdit!!,
-                onDismiss = { bancalToEdit = null },
+                onDismiss = { 
+                    Log.d("BancalesScreen", "Diálogo de editar bancal cancelado")
+                    bancalToEdit = null 
+                },
                 onConfirm = { name, width, height ->
-                    bancalToEdit!!.name = name
-                    bancalToEdit!!.width = width.toFloatOrNull() ?: bancalToEdit!!.width
-                    bancalToEdit!!.height = height.toFloatOrNull() ?: bancalToEdit!!.height
-                    state2 = !state2
+                    val updatedBancal = bancalToEdit!!.copy(
+                        name = name,
+                        width = width.toFloatOrNull() ?: bancalToEdit!!.width,
+                        height = height.toFloatOrNull() ?: bancalToEdit!!.height
+                    )
+                    Log.d("BancalesScreen", "Actualizando bancal: ${bancalToEdit?.id} -> $updatedBancal")
+                    viewModel.updateBancal(updatedBancal)
+                    internalState = if (internalState == 0) 1 else 0 // Toggle state to force recomposition
                     bancalToEdit = null
                 }
             )
         }
     }
 }
-
 
 @Composable
 fun CreateBancalDialog(
@@ -808,322 +908,5 @@ fun EditBancalDialog(
             )
         }
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditTerrenosDialog(
-    user: User,
-    onDismiss: () -> Unit,
-    onSave: (User) -> Unit,
-    viewModel: UserViewModel
-) {
-    var showAddTerrenoDialog by remember { mutableStateOf(false) }
-    var showAddSectorDialog by remember { mutableStateOf(false) }
-    var showEditTerrenoDialog by remember { mutableStateOf<Terrain?>(null) }
-    var showEditSectorDialog by remember { mutableStateOf<Pair<Terrain, Sector>?>(null) }
-    var selectedTerreno by remember { mutableStateOf<Terrain?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Terrenos y Sectores") },
-        text = {
-            Column {
-                // Lista de Terrenos
-                user.terrains?.forEach { terreno ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = terreno.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        
-                        // Botones de editar y eliminar terreno
-                        HuertoOutlinedButton(
-                            onClick = { showEditTerrenoDialog = terreno },
-                            text = "Editar",
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        
-                        HuertoOutlinedButton(
-                            onClick = { viewModel.deleteTerrain(terreno) },
-                            text = "Eliminar"
-                        )
-                    }
-                    
-                    // Lista de Sectores del Terreno
-                    terreno.sectors.forEach { sector ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "  - ${sector.name}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            
-                            // Botones de editar y eliminar sector
-                            HuertoOutlinedButton(
-                                onClick = { showEditSectorDialog = Pair(terreno, sector) },
-                                text = "Editar",
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                            
-                            HuertoOutlinedButton(
-                                onClick = { viewModel.deleteSector(terreno, sector) },
-                                text = "Eliminar"
-                            )
-                        }
-                    }
-                }
-
-                // Botones de Añadir
-                HuertoButton(
-                    onClick = { showAddTerrenoDialog = true },
-                    text = "Añadir Terreno",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                HuertoButton(
-                    onClick = { showAddSectorDialog = true },
-                    text = "Añadir Sector",
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            HuertoButton(
-                onClick = { onDismiss() },
-                text = "Cerrar"
-            )
-        },
-        dismissButton = {
-            HuertoOutlinedButton(
-                onClick = onDismiss,
-                text = "Cancelar"
-            )
-        }
-    )
-
-    // Diálogo para añadir Terreno
-    if (showAddTerrenoDialog) {
-        var name by remember { mutableStateOf("") }
-        var location by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showAddTerrenoDialog = false },
-            title = { Text("Nuevo Terreno") },
-            text = {
-                Column {
-                    HuertoTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = "Nombre del terreno",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    HuertoTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        label = "Localización",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                HuertoButton(
-                    onClick = {
-                        if (name.isNotBlank() && location.isNotBlank()) {
-                            viewModel.createTerrain(name, location)
-                            showAddTerrenoDialog = false
-                        }
-                    },
-                    text = "Crear"
-                )
-            },
-            dismissButton = {
-                HuertoOutlinedButton(
-                    onClick = { showAddTerrenoDialog = false },
-                    text = "Cancelar"
-                )
-            }
-        )
-    }
-
-    // Diálogo para editar Terreno
-    if (showEditTerrenoDialog != null) {
-        var name by remember { mutableStateOf(showEditTerrenoDialog!!.name) }
-        var location by remember { mutableStateOf(showEditTerrenoDialog!!.Location) }
-        AlertDialog(
-            onDismissRequest = { showEditTerrenoDialog = null },
-            title = { Text("Editar Terreno") },
-            text = {
-                Column {
-                    HuertoTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = "Nombre del terreno",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    HuertoTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        label = "Localización",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                HuertoButton(
-                    onClick = {
-                        if (name.isNotBlank() && location.isNotBlank()) {
-                            viewModel.updateTerrain(showEditTerrenoDialog!!, name, location)
-                            showEditTerrenoDialog = null
-                        }
-                    },
-                    text = "Guardar"
-                )
-            },
-            dismissButton = {
-                HuertoOutlinedButton(
-                    onClick = { showEditTerrenoDialog = null },
-                    text = "Cancelar"
-                )
-            }
-        )
-    }
-
-    // Diálogo para añadir Sector
-    if (showAddSectorDialog) {
-        var name by remember { mutableStateOf("") }
-        var expandedTerreno by remember { mutableStateOf(false) }
-        var selectedTerrenoForSector by remember { mutableStateOf(user.terrains?.firstOrNull()) }
-
-        AlertDialog(
-            onDismissRequest = { showAddSectorDialog = false },
-            title = { Text("Nuevo Sector") },
-            text = {
-                Column {
-                    HuertoTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = "Nombre del sector",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Selector de Terreno
-                    ExposedDropdownMenuBox(
-                        expanded = expandedTerreno,
-                        onExpandedChange = { expandedTerreno = it },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextField(
-                            value = selectedTerrenoForSector?.name ?: "Seleccionar terreno",
-                            onValueChange = { },
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTerreno) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expandedTerreno,
-                            onDismissRequest = { expandedTerreno = false }
-                        ) {
-                            user.terrains?.forEach { terreno ->
-                                DropdownMenuItem(
-                                    text = { Text(terreno.name) },
-                                    onClick = {
-                                        selectedTerrenoForSector = terreno
-                                        expandedTerreno = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                HuertoButton(
-                    onClick = {
-                        if (name.isNotBlank() && selectedTerrenoForSector != null) {
-                            viewModel.createSector(name, selectedTerrenoForSector!!)
-                            showAddSectorDialog = false
-                        }
-                    },
-                    text = "Crear"
-                )
-            },
-            dismissButton = {
-                HuertoOutlinedButton(
-                    onClick = { showAddSectorDialog = false },
-                    text = "Cancelar"
-                )
-            }
-        )
-    }
-
-    // Diálogo para editar Sector
-    if (showEditSectorDialog != null) {
-        var name by remember { mutableStateOf(showEditSectorDialog!!.second.name) }
-        AlertDialog(
-            onDismissRequest = { showEditSectorDialog = null },
-            title = { Text("Editar Sector") },
-            text = {
-                Column {
-                    HuertoTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = "Nombre del sector",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text
-                        )
-                    )
-                }
-            },
-            confirmButton = {
-                HuertoButton(
-                    onClick = {
-                        if (name.isNotBlank()) {
-                            viewModel.updateSector(showEditSectorDialog!!.first, showEditSectorDialog!!.second, name)
-                            showEditSectorDialog = null
-                        }
-                    },
-                    text = "Guardar"
-                )
-            },
-            dismissButton = {
-                HuertoOutlinedButton(
-                    onClick = { showEditSectorDialog = null },
-                    text = "Cancelar"
-                )
-            }
-        )
-    }
 }
 
