@@ -78,10 +78,9 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
-    val user by viewModel.user.collectAsStateWithLifecycle()
+
     val terrains by viewModel.terrains.collectAsStateWithLifecycle()
     val sectorsMap by viewModel.sectors.collectAsStateWithLifecycle()
-    val bancalesMap by viewModel.bancales.collectAsStateWithLifecycle()
     val selectedTerrainId by viewModel.selectedTerrainId.collectAsStateWithLifecycle()
     val selectedSectorId by viewModel.selectedSectorId.collectAsStateWithLifecycle()
     
@@ -423,33 +422,6 @@ fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
 }
 
 @Composable
-fun BancalItem(bancal: Bancal) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = bancal.name,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${bancal.width}m x ${bancal.height}m",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, sector: Sector, state: Int) {
     // Obtener la lista de bancales para este sector
     val bancalesList by viewModel.bancales.collectAsStateWithLifecycle()
@@ -463,7 +435,6 @@ fun BancalesBodyContent(navController: NavController, viewModel: UserViewModel, 
     var bancalToEdit by remember { mutableStateOf<Bancal?>(null) }
     var selectedBancal by remember { mutableStateOf<Bancal?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var initialTouch by remember { mutableStateOf(Offset.Zero) }
     var canvasOffset by remember { mutableStateOf(Offset.Zero) }
     var lastDragPosition by remember { mutableStateOf(Offset.Zero) }
     var isDraggingCanvas by remember { mutableStateOf(false) }

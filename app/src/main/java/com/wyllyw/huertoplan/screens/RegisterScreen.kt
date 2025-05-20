@@ -1,7 +1,6 @@
 package com.wyllyw.huertoplan.screens
 
 import android.annotation.SuppressLint
-import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -35,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,10 +42,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.wyllyw.huertoplan.model.Bancal
+import com.wyllyw.huertoplan.model.Sector
+import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.navigation.AppScreens
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -143,6 +146,7 @@ fun registerNewUser(
             if (task.isSuccessful) {
                 userViewModel.setUser(credentials.login)
                 onResult("Éxito", "Usuario registrado correctamente", false)
+                crearDatosInicialesNuevoUsuario()
                 navController.navigate(AppScreens.BancalesScreen.route)
             } else {
                 val errorMessage = when {
@@ -157,6 +161,22 @@ fun registerNewUser(
                 onResult("Error", errorMessage, true)
             }
         }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+fun crearDatosInicialesNuevoUsuario() {
+    val userUuid = FirebaseAuth.getInstance().currentUser!!.uid
+    val terrain = Terrain(id = Uuid.random().toString(), name = "Terreno 1", Location = "Asturias", userId = userUuid)
+    val sector = Sector(id = Uuid.random().toString(), name = "Sector 1", terrainId = terrain.id)
+    val bancal = Bancal(id = Uuid.random().toString(), name = "Bancal 1", sectorId = sector.id)
+
+    FirebaseFirestore.getInstance().collection("terrenos").document(userUuid).set(terrain).addOnCompleteListener {
+        if (it.isSuccessful) {
+            println("Datos iniciales creados correctamente")
+        } else {
+            println("Error al crear los datos iniciales: ${it.exception?.message}")
+        }
+    }
 }
 
 @Composable

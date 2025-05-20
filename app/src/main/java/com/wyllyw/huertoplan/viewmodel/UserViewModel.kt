@@ -39,7 +39,7 @@ class UserViewModel @Inject constructor(
     // Para mantener el estado de selección actual
     private var _selectedTerrainId = MutableStateFlow<String?>(null)
     val selectedTerrainId: StateFlow<String?> = _selectedTerrainId.asStateFlow()
-    
+
     private var _selectedSectorId = MutableStateFlow<String?>(null)
     val selectedSectorId: StateFlow<String?> = _selectedSectorId.asStateFlow()
 
@@ -51,41 +51,41 @@ class UserViewModel @Inject constructor(
         _user.value = repository.getUser("")
         loadTerrains()
     }
-    
+
     private fun loadTerrains() {
         val userId = _user.value.id
         if (userId.isNotEmpty()) {
             val terrainsList = repository.getTerrainsByUserId(userId)
             _terrains.value = terrainsList
-            
+
             // Cargar sectores para cada terreno
             val sectorsMap = mutableMapOf<String, List<Sector>>()
             terrainsList.forEach { terrain ->
                 val sectorsList = repository.getSectorsByTerrainId(terrain.id)
                 sectorsMap[terrain.id] = sectorsList
-                
+
                 // Cargar bancales para cada sector
                 val bancalesMap = mutableMapOf<String, List<Bancal>>()
                 sectorsList.forEach { sector ->
                     val bancalesList = repository.getBancalesBySectorId(sector.id)
                     bancalesMap[sector.id] = bancalesList
                 }
-                
+
                 _bancales.value = bancalesMap
             }
-            
+
             _sectors.value = sectorsMap
-            
+
             // Seleccionar el primer terreno por defecto si existe
             if (terrainsList.isNotEmpty() && _selectedTerrainId.value == null) {
                 selectTerrain(terrainsList[0].id)
             }
         }
     }
-    
+
     fun selectTerrain(terrainId: String) {
         _selectedTerrainId.value = terrainId
-        
+
         // Seleccionar el primer sector de este terreno por defecto
         val terrainSectors = _sectors.value[terrainId] ?: emptyList()
         if (terrainSectors.isNotEmpty()) {
@@ -94,7 +94,7 @@ class UserViewModel @Inject constructor(
             _selectedSectorId.value = null
         }
     }
-    
+
     fun selectSector(sectorId: String) {
         _selectedSectorId.value = sectorId
     }
@@ -117,18 +117,18 @@ class UserViewModel @Inject constructor(
             Location = tUb,
             userId = _user.value.id
         )
-        
+
         // Actualizar la lista de terrenos
         val updatedTerrains = _terrains.value.toMutableList()
         updatedTerrains.add(newTerrain)
         _terrains.value = updatedTerrains
-        
+
         // Actualizar los IDs de terrenos en el usuario
         val updatedUser = _user.value.copy(
             terrainsIds = _user.value.terrainsIds + terrainId
         )
         _user.value = updatedUser
-        
+
         // Seleccionar el nuevo terreno
         selectTerrain(terrainId)
     }
@@ -136,7 +136,7 @@ class UserViewModel @Inject constructor(
     fun updateTerrain(terrain: Terrain, newName: String, newLocation: String) {
         val updatedTerrains = _terrains.value.toMutableList()
         val terrainIndex = updatedTerrains.indexOfFirst { it.id == terrain.id }
-        
+
         if (terrainIndex != -1) {
             val updatedTerrain = terrain.copy(
                 name = newName,
@@ -151,18 +151,18 @@ class UserViewModel @Inject constructor(
         // Eliminar el terreno de la lista de terrenos
         val updatedTerrains = _terrains.value.filter { it.id != terrain.id }
         _terrains.value = updatedTerrains
-        
+
         // Eliminar la referencia del ID de terreno en el usuario
         val updatedUser = _user.value.copy(
             terrainsIds = _user.value.terrainsIds.filter { it != terrain.id }
         )
         _user.value = updatedUser
-        
+
         // Eliminar los sectores asociados a este terreno
         val updatedSectors = _sectors.value.toMutableMap()
         updatedSectors.remove(terrain.id)
         _sectors.value = updatedSectors
-        
+
         // Si el terreno eliminado era el seleccionado, seleccionar otro
         if (_selectedTerrainId.value == terrain.id) {
             _selectedTerrainId.value = updatedTerrains.firstOrNull()?.id
@@ -177,18 +177,18 @@ class UserViewModel @Inject constructor(
             name = tName,
             terrainId = terrain.id
         )
-        
+
         // Actualizar la lista de sectores para este terreno
         val updatedSectorsMap = _sectors.value.toMutableMap()
         val updatedSectors = (updatedSectorsMap[terrain.id] ?: emptyList()).toMutableList()
         updatedSectors.add(newSector)
         updatedSectorsMap[terrain.id] = updatedSectors
         _sectors.value = updatedSectorsMap
-        
+
         // Actualizar la lista de IDs de sectores en el terreno
         val updatedTerrains = _terrains.value.toMutableList()
         val terrainIndex = updatedTerrains.indexOfFirst { it.id == terrain.id }
-        
+
         if (terrainIndex != -1) {
             val updatedTerrain = updatedTerrains[terrainIndex].copy(
                 sectorsIds = updatedTerrains[terrainIndex].sectorsIds + sectorId
@@ -196,7 +196,7 @@ class UserViewModel @Inject constructor(
             updatedTerrains[terrainIndex] = updatedTerrain
             _terrains.value = updatedTerrains
         }
-        
+
         // Seleccionar el nuevo sector
         selectSector(sectorId)
     }
@@ -204,7 +204,7 @@ class UserViewModel @Inject constructor(
     fun updateSector(terrain: Terrain, sector: Sector, newName: String) {
         val updatedSectorsMap = _sectors.value.toMutableMap()
         val sectorsList = updatedSectorsMap[terrain.id]?.toMutableList() ?: return
-        
+
         val sectorIndex = sectorsList.indexOfFirst { it.id == sector.id }
         if (sectorIndex != -1) {
             val updatedSector = sector.copy(name = newName)
@@ -220,11 +220,11 @@ class UserViewModel @Inject constructor(
         val sectorsList = updatedSectorsMap[terrain.id]?.filter { it.id != sector.id } ?: emptyList()
         updatedSectorsMap[terrain.id] = sectorsList
         _sectors.value = updatedSectorsMap
-        
+
         // Eliminar la referencia del ID de sector en el terreno
         val updatedTerrains = _terrains.value.toMutableList()
         val terrainIndex = updatedTerrains.indexOfFirst { it.id == terrain.id }
-        
+
         if (terrainIndex != -1) {
             val updatedTerrain = updatedTerrains[terrainIndex].copy(
                 sectorsIds = updatedTerrains[terrainIndex].sectorsIds.filter { it != sector.id }
@@ -232,12 +232,12 @@ class UserViewModel @Inject constructor(
             updatedTerrains[terrainIndex] = updatedTerrain
             _terrains.value = updatedTerrains
         }
-        
+
         // Eliminar los bancales asociados a este sector
         val updatedBancalesMap = _bancales.value.toMutableMap()
         updatedBancalesMap.remove(sector.id)
         _bancales.value = updatedBancalesMap
-        
+
         // Si el sector eliminado era el seleccionado, seleccionar otro
         if (_selectedSectorId.value == sector.id) {
             _selectedSectorId.value = sectorsList.firstOrNull()?.id
@@ -247,42 +247,42 @@ class UserViewModel @Inject constructor(
     fun addBancal(sector: Sector, bancal: Bancal) {
         // Asegurarnos de que el bancal tenga el sectorId correcto y un ID válido
         Log.d("UserViewModel", "Intentando añadir bancal para sector: ${sector.id}, bancal: ${bancal.name}")
-        
+
         // Verificar si el bancal ya tiene un ID, si no, generar uno nuevo
         val bancalId = if (bancal.id.isBlank()) UUID.randomUUID().toString() else bancal.id
         Log.d("UserViewModel", "ID de bancal a usar: $bancalId")
-        
+
         val newBancal = bancal.copy(
             id = bancalId,
             sectorId = sector.id
         )
-        
+
         Log.d("UserViewModel", "Bancal preparado: $newBancal")
-        
+
         // Actualizar la lista de bancales para este sector
         val updatedBancalesMap = _bancales.value.toMutableMap()
         val updatedBancales = (updatedBancalesMap[sector.id] ?: emptyList()).toMutableList()
         updatedBancales.add(newBancal)
         updatedBancalesMap[sector.id] = updatedBancales
         _bancales.value = updatedBancalesMap
-        
+
         Log.d("UserViewModel", "Bancales actualizados para sector ${sector.id}: ${updatedBancales.size}")
-        
+
         // Actualizar la lista de IDs de bancales en el sector
         val terrainId = sector.terrainId
         Log.d("UserViewModel", "Actualizando sector en terrain: $terrainId")
-        
+
         val updatedSectorsMap = _sectors.value.toMutableMap()
         val sectorsList = updatedSectorsMap[terrainId]?.toMutableList()
-        
+
         if (sectorsList == null) {
             Log.e("UserViewModel", "No se encontró la lista de sectores para el terreno: $terrainId")
             return
         }
-        
+
         val sectorIndex = sectorsList.indexOfFirst { it.id == sector.id }
         Log.d("UserViewModel", "Índice del sector a actualizar: $sectorIndex")
-        
+
         if (sectorIndex != -1) {
             val updatedSector = sectorsList[sectorIndex].copy(
                 bancalesIds = sectorsList[sectorIndex].bancalesIds + bancalId
@@ -290,9 +290,9 @@ class UserViewModel @Inject constructor(
             sectorsList[sectorIndex] = updatedSector
             updatedSectorsMap[terrainId] = sectorsList
             _sectors.value = updatedSectorsMap
-            
+
             Log.d("UserViewModel", "Sector actualizado, bancalesIds: ${updatedSector.bancalesIds}")
-            
+
             // Forzar notificación a los collectors
             viewModelScope.launch {
                 _bancales.value = _bancales.value
@@ -304,20 +304,15 @@ class UserViewModel @Inject constructor(
 
     fun updateBancal(bancal: Bancal) {
         val sectorId = bancal.sectorId
-        
+
         val updatedBancalesMap = _bancales.value.toMutableMap()
         val bancalesList = updatedBancalesMap[sectorId]?.toMutableList() ?: return
-        
+
         val bancalIndex = bancalesList.indexOfFirst { it.id == bancal.id }
         if (bancalIndex != -1) {
             bancalesList[bancalIndex] = bancal
             updatedBancalesMap[sectorId] = bancalesList
             _bancales.value = updatedBancalesMap
-            
-            // Forzar notificación a los collectors
-            viewModelScope.launch {
-                _bancales.value = _bancales.value
-            }
         }
     }
 
@@ -327,12 +322,12 @@ class UserViewModel @Inject constructor(
         val bancalesList = updatedBancalesMap[sector.id]?.filter { it.id != bancal.id } ?: emptyList()
         updatedBancalesMap[sector.id] = bancalesList
         _bancales.value = updatedBancalesMap
-        
+
         // Eliminar la referencia del ID de bancal en el sector
         val terrainId = sector.terrainId
         val updatedSectorsMap = _sectors.value.toMutableMap()
         val sectorsList = updatedSectorsMap[terrainId]?.toMutableList() ?: return
-        
+
         val sectorIndex = sectorsList.indexOfFirst { it.id == sector.id }
         if (sectorIndex != -1) {
             val updatedSector = sectorsList[sectorIndex].copy(
@@ -341,40 +336,35 @@ class UserViewModel @Inject constructor(
             sectorsList[sectorIndex] = updatedSector
             updatedSectorsMap[terrainId] = sectorsList
             _sectors.value = updatedSectorsMap
-            
-            // Forzar notificación a los collectors
-            viewModelScope.launch {
-                _bancales.value = _bancales.value
-            }
         }
     }
-    
+
     // Métodos de ayuda para obtener objetos específicos por ID
-    
+
     fun getTerrainById(terrainId: String): Terrain? {
         return _terrains.value.find { it.id == terrainId }
     }
-    
+
     fun getSectorById(sectorId: String): Sector? {
         return _sectors.value.values.flatten().find { it.id == sectorId }
     }
-    
+
     fun getBancalById(bancalId: String): Bancal? {
         return _bancales.value.values.flatten().find { it.id == bancalId }
     }
-    
+
     fun getSelectedTerrain(): Terrain? {
         return _selectedTerrainId.value?.let { getTerrainById(it) }
     }
-    
+
     fun getSelectedSector(): Sector? {
         return _selectedSectorId.value?.let { getSectorById(it) }
     }
-    
+
     fun getSectorsForTerrain(terrainId: String): List<Sector> {
         return _sectors.value[terrainId] ?: emptyList()
     }
-    
+
     fun getBancalesForSector(sectorId: String): List<Bancal> {
         return _bancales.value[sectorId] ?: emptyList()
     }
