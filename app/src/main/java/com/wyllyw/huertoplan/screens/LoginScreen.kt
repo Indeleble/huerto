@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -68,7 +69,6 @@ fun SingUpScreen (navController: NavController,  viewModel: UserViewModel) {
 
 @Composable
 fun BodyContent(navController: NavController, viewModel: UserViewModel) {
-
     //Estructura de contenido de la pantalla
     Surface {
         var credentials by remember { mutableStateOf(Credentials()) }
@@ -123,7 +123,7 @@ fun checkCredentials(creds: Credentials, context: Context, navController: NavCon
         //TODO Hacer algoooorrrrrr
 
         viewModel.setUser(creds.login)
-        navController.navigate(AppScreens.TerrenosScreen.route)
+        navController.navigate(AppScreens.BancalesScreen.route)
        //navController.setUser(new User())
 
         return true

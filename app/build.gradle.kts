@@ -13,7 +13,6 @@ android {
     defaultConfig {
         applicationId = "com.wyllyw.huertoplan"
         minSdk = 31
-        //noinspection EditedTargetSdkVersion
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -81,5 +80,6 @@ dependencies {
     implementation ("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation ("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("com.github.chihsuanwu:compose-free-scroll:0.2.3")
 
 }
