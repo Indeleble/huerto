@@ -168,21 +168,4 @@ class UserViewModel @Inject constructor(private val repository: MainRepository) 
         _bancales.value = emptyList()
     }
 
-    fun addBancal(sector: Sector, bancal: Bancal) {
-        _user.value.terrains
-            ?.flatMap { it.sectors }
-            ?.find { it.name == sector.name }
-            ?.bancales
-            ?.add(bancal)
-        _user.value = _user.value.copy()
-    }
-
-    fun deleteBancal(sector: Sector, bancal: Bancal) {
-        _user.value.terrains
-            ?.flatMap { it.sectors }
-            ?.find { it.name == sector.name }
-            ?.bancales
-            ?.remove(bancal)
-        _user.value = _user.value.copy()
-    }
 }

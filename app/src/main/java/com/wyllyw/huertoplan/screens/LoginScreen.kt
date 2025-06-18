@@ -51,6 +51,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.TextFieldDefaults
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -69,8 +72,10 @@ fun SingUpScreen (navController: NavController,  viewModel: UserViewModel) {
 
 @Composable
 fun BodyContent(navController: NavController, viewModel: UserViewModel) {
-    //Estructura de contenido de la pantalla
-    Surface {
+    
+    Surface(
+        color = MaterialTheme.colorScheme.background
+    ) {
         var credentials by remember { mutableStateOf(Credentials()) }
         val context = LocalContext.current
 
@@ -90,7 +95,8 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 value = credentials.pwd,
                 onChange = { data -> credentials = credentials.copy(pwd = data) },
                 submit = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
+                    if (!checkCredentials(credentials, context, navController, viewModel)) 
+                        credentials = Credentials()
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -105,11 +111,16 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) credentials = Credentials()
+                    if (!checkCredentials(credentials, context, navController, viewModel)) 
+                        credentials = Credentials()
                 },
                 enabled = credentials.isNotEmpty(),
                 shape = RoundedCornerShape(5.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
                 Text("Login")
             }
@@ -144,24 +155,30 @@ data class Credentials(
     }
 }
 
-
 @Composable
 fun LabeledCheckbox(
     label: String,
     onCheckChanged: () -> Unit,
     isChecked: Boolean
 ) {
-
     Row(
         Modifier
-            .clickable(
-                onClick = onCheckChanged
-            )
+            .clickable(onClick = onCheckChanged)
             .padding(4.dp)
     ) {
-        Checkbox(checked = isChecked, onCheckedChange = null)
+        Checkbox(
+            checked = isChecked, 
+            onCheckedChange = null,
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.primary,
+                uncheckedColor = MaterialTheme.colorScheme.outline
+            )
+        )
         Spacer(Modifier.size(6.dp))
-        Text(label)
+        Text(
+            label,
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
@@ -173,7 +190,6 @@ fun LoginField(
     label: String = "User",
     placeholder: String = "Enter your Login"
 ) {
-
     val focusManager = LocalFocusManager.current
     val leadingIcon = @Composable {
         Icon(
@@ -195,7 +211,15 @@ fun LoginField(
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
-        visualTransformation = VisualTransformation.None
+        visualTransformation = VisualTransformation.None,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+        )
     )
 }
 
@@ -208,7 +232,6 @@ fun PasswordField(
     label: String = "Password",
     placeholder: String = "Enter your Password"
 ) {
-
     var isPasswordVisible by remember { mutableStateOf(false) }
 
     val leadingIcon = @Composable {
@@ -228,7 +251,6 @@ fun PasswordField(
         }
     }
 
-
     TextField(
         value = value,
         onValueChange = onChange,
@@ -245,7 +267,15 @@ fun PasswordField(
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
-        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation()
+        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+        )
     )
 }
 

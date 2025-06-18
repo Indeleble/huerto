@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,9 +70,12 @@ fun BancalDraggable(
     Box(
         modifier = Modifier
             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-            .size(width = (bancal.width * 50).dp, height = (bancal.height * 50).dp)
+            .size(width = (bancal.width * 70).dp, height = (bancal.height * 70).dp)
             .background(
-                color = if (isDragging) Color.Green else Color.Green.copy(alpha = 0.7f),
+                color = if (isDragging) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(8.dp)
             )
             .pointerInput(bancal.id) {
@@ -85,7 +90,6 @@ fun BancalDraggable(
                         isDragging = false
                     }
                 ) { change, dragAmount ->
-                    // Solo consume si el drag es significativo
                     if (kotlin.math.abs(dragAmount.x) > 1f || kotlin.math.abs(dragAmount.y) > 1f) {
                         change.consume()
                         offsetX += dragAmount.x
@@ -103,7 +107,7 @@ fun BancalDraggable(
     ) {
         Text(
             text = bancal.name,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.padding(8.dp)
         )
     }
@@ -120,24 +124,22 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.LightGray)
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .freeScroll(state = freeScrollState)
         ) {
-
             Box(
                 modifier = Modifier
                     .size(width = 5000.dp, height = 5000.dp)
-                    .background(Color.Black.copy(alpha = 0.3f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     .freeScroll(state = freeScrollState)
             ) {
-
                 bancales.forEach { bancal ->
                     BancalDraggable(
                         bancal = bancal,
@@ -145,17 +147,14 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                             println("Bancal ${clickedBancal.name} clicked")
                         },
                         onBancalMoved = { movedBancal, newX, newY ->
-                            // Aquí puedes actualizar la posición en el ViewModel si es necesario
-                            movedBancal.x = newX
-                            movedBancal.y = newY
+                            viewModel.updateBancalPosition(movedBancal.id, newX, newY)
                         }
                     )
-
                 }
             }
         }
 
-        // Botón de crear en la parte inferior
+        // Botón de crear con colores del theme
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -163,7 +162,11 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
         ) {
             Button(
                 onClick = { showCreateSectorPopup = true },
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier.align(Alignment.Center),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
             ) {
                 Text(text = "Crear")
             }
@@ -171,14 +174,14 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
     }
 /*
     CreateSectorDialog(
-        terrain = viewModel.getTerrainToShow(),
+        terrain = viewModel.getCurrentTerrain(),
         showPopup = showCreateSectorPopup,
         onDismissRequest = { showCreateSectorPopup = false },
         onConfirmation = { name: String, terreno: Terrain ->
-            viewModel.createSector(name, terreno)
+            viewModel.createSector(name)
             showCreateSectorPopup = false
         }
     )
+    */
 
- */
 }
