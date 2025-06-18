@@ -11,64 +11,161 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class UserViewModel @Inject constructor(repository: MainRepository) : ViewModel() {
+class UserViewModel @Inject constructor(private val repository: MainRepository) : ViewModel() {
 
-    private val _user = MutableStateFlow(User("", null))
+    // Estado principal del usuario
+    private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
 
-    private var repo = repository
+    // Estado para navegación y selección
+    private val _selectedTerrain = MutableStateFlow<Terrain?>(null)
+    val selectedTerrain = _selectedTerrain.asStateFlow()
 
-    private lateinit var terrainToShow: Terrain
-    private lateinit var sectorToShow: Sector
+    private val _selectedSector = MutableStateFlow<Sector?>(null)
+    val selectedSector = _selectedSector.asStateFlow()
 
-    init {
-        repo = repository;
+    // Estados para las listas completas
+    private val _terrains = MutableStateFlow<List<Terrain>>(emptyList())
+    val terrains = _terrains.asStateFlow()
+
+    private val _sectors = MutableStateFlow<List<Sector>>(emptyList())
+    val sectors = _sectors.asStateFlow()
+
+    private val _bancales = MutableStateFlow<List<Bancal>>(emptyList())
+    val bancales = _bancales.asStateFlow()
+
+    // MARK: - Usuario
+    fun setUser(userId: String) {
+        // Cargar usuario del repositorio (mock por ahora)
+        val user = repository.getUser(userId)
+        _user.value = user
+        
+        // Cargar terrenos del usuario
+        loadTerrainsForUser(userId)
     }
 
-    fun changeName(name: String) {
-        val copy: User = _user.value.copy()
-        copy.name = name
-        _user.value = copy
+    fun updateUserName(newName: String) {
+        _user.value?.let { currentUser ->
+            _user.value = currentUser.copy(name = newName)
+            // Aquí también actualizarías en el repositorio
+        }
     }
 
-    fun setUser(login: String) {
-        _user.value = repo.getUser(login)
+    // MARK: - Terrenos
+    fun loadTerrainsForUser(userId: String) {
+        val userTerrains = repository.getTerrainsForUser(userId)
+        _terrains.value = userTerrains
+        
+        // Seleccionar el primer terreno por defecto si hay terrenos disponibles
+        if (userTerrains.isNotEmpty()) {
+            selectTerrain(userTerrains[0])
+        }
     }
 
-    fun deleteTerrain(terrain: Terrain) {
-        var copy: User = _user.value.copy()
-        val terrains = _user.value.terrains
-        terrains?.remove(terrain)
-        copy.terrains = terrains
-        _user.value = copy
+    fun createTerrain(name: String, location: String) {
+        val userId = _user.value?.id ?: return
+        val newTerrain = repository.createTerrain(name, location, userId)
+        _terrains.value = _terrains.value + newTerrain
     }
 
-    fun setTerrainToShow(terrain: Terrain){
-        terrainToShow = terrain
+    fun deleteTerrain(terrainId: String) {
+        repository.deleteTerrain(terrainId)
+        _terrains.value = _terrains.value.filter { it.id != terrainId }
+        
+        // Si el terreno eliminado era el seleccionado, limpiar selección
+        if (_selectedTerrain.value?.id == terrainId) {
+            _selectedTerrain.value = null
+            _selectedSector.value = null
+            _sectors.value = emptyList()
+            _bancales.value = emptyList()
+        }
     }
 
-    fun getTerrainToShow(): Terrain {
-        return terrainToShow
+    fun selectTerrain(terrain: Terrain) {
+        _selectedTerrain.value = terrain
+        loadSectorsForTerrain(terrain.id)
+        // Limpiar selecciones de niveles inferiores
+        _selectedSector.value = null
+     //   _bancales.value = emptyList()
     }
 
-    fun setSectorToShow(sector: Sector){
-        sectorToShow = sector
+    // MARK: - Sectores
+    fun loadSectorsForTerrain(terrainId: String) {
+        val terrainSectors = repository.getSectorsForTerrain(terrainId)
+        _sectors.value = terrainSectors
+        
+        // Seleccionar el primer sector por defecto si hay sectores disponibles
+        if (terrainSectors.isNotEmpty()) {
+            selectSector(terrainSectors[0])
+        }
     }
 
-    fun getSectorToShow(): Sector {
-        return sectorToShow
+    fun createSector(name: String) {
+        val terrainId = _selectedTerrain.value?.id ?: return
+        val newSector = repository.createSector(name, terrainId)
+        _sectors.value = _sectors.value + newSector
     }
 
-    fun createTerrain(tName: String, tUb: String) {
-        _user.value.terrains?.add(Terrain(tName, tUb, ArrayList()))
+    fun deleteSector(sectorId: String) {
+        repository.deleteSector(sectorId)
+        _sectors.value = _sectors.value.filter { it.id != sectorId }
+        
+        // Si el sector eliminado era el seleccionado, limpiar selección
+        if (_selectedSector.value?.id == sectorId) {
+            _selectedSector.value = null
+            _bancales.value = emptyList()
+        }
     }
 
-    fun deleteSector(terrainToShow: Terrain, sector: Sector) {
-        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.remove(sector)
+    fun selectSector(sector: Sector) {
+        _selectedSector.value = sector
+        loadBancalesForSector(sector.id)
     }
 
-    fun createSector(tName: String, terrain: Terrain) {
-        _user.value.terrains?.find { it.name == terrainToShow.name }?.sectors?.add(Sector(tName, ArrayList()))
+    // MARK: - Bancales
+    fun loadBancalesForSector(sectorId: String) {
+        val sectorBancales = repository.getBancalesForSector(sectorId)
+        _bancales.value = sectorBancales
+    }
+
+    fun createBancal(name: String, x: Float, y: Float, width: Float, height: Float) {
+        val sectorId = _selectedSector.value?.id ?: return
+        val newBancal = repository.createBancal(name, sectorId, x, y, width, height)
+        _bancales.value = _bancales.value + newBancal
+    }
+
+    fun updateBancalPosition(bancalId: String, newX: Float, newY: Float) {
+        repository.updateBancalPosition(bancalId, newX, newY)
+        _bancales.value = _bancales.value.map { bancal ->
+            if (bancal.id == bancalId) {
+                bancal.copy(x = newX, y = newY)
+            } else {
+                bancal
+            }
+        }
+    }
+
+    fun deleteBancal(bancalId: String) {
+        repository.deleteBancal(bancalId)
+        _bancales.value = _bancales.value.filter { it.id != bancalId }
+    }
+
+    // MARK: - Getters de conveniencia
+    fun getCurrentUser(): User? = _user.value
+    fun getCurrentTerrain(): Terrain? = _selectedTerrain.value
+    fun getCurrentSector(): Sector? = _selectedSector.value
+    fun getCurrentBancales(): List<Bancal> = _bancales.value
+
+    // MARK: - Estado de autenticación
+    fun isUserLoggedIn(): Boolean = _user.value != null
+    
+    fun logout() {
+        _user.value = null
+        _selectedTerrain.value = null
+        _selectedSector.value = null
+        _terrains.value = emptyList()
+        _sectors.value = emptyList()
+        _bancales.value = emptyList()
     }
 
     fun addBancal(sector: Sector, bancal: Bancal) {
