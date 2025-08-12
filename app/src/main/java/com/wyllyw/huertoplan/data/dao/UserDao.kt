@@ -12,7 +12,13 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE id = :id")
     suspend fun getUserById(id: String): User?
     
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM users WHERE username = :username")
+    suspend fun getUserByUsername(username: String): User?
+    
+    @Query("SELECT COUNT(*) FROM users WHERE username = :username")
+    suspend fun countUsersByUsername(username: String): Int
+    
+    @Insert(onConflict = OnConflictStrategy.ABORT) // Cambio a ABORT para evitar duplicados
     suspend fun insertUser(user: User)
     
     @Update

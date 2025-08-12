@@ -80,7 +80,7 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
         color = MaterialTheme.colorScheme.background
     ) {
         var credentials by remember { mutableStateOf(Credentials()) }
-        var newUserName by remember { mutableStateOf("") }
+        var newUser by remember { mutableStateOf(NewUserCredentials()) }
         var showCreateUser by remember { mutableStateOf(false) }
         val context = LocalContext.current
         
@@ -114,14 +114,19 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 LoginField(
                     value = credentials.login,
                     onChange = { data -> credentials = credentials.copy(login = data) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Nombre de Usuario",
+                    placeholder = "Ingresa tu nombre de usuario"
                 )
                 PasswordField(
                     value = credentials.pwd,
                     onChange = { data -> credentials = credentials.copy(pwd = data) },
                     submit = {
-                        if (!checkCredentials(credentials, context, navController, viewModel)) 
-                            credentials = Credentials()
+                        if (credentials.isNotEmpty()) {
+                            viewModel.login(credentials.login, credentials.pwd)
+                        } else {
+                            Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -136,8 +141,11 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
                     onClick = {
-                        if (!checkCredentials(credentials, context, navController, viewModel)) 
-                            credentials = Credentials()
+                        if (credentials.isNotEmpty()) {
+                            viewModel.login(credentials.login, credentials.pwd)
+                        } else {
+                            Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     enabled = credentials.isNotEmpty() && !isLoading,
                     shape = RoundedCornerShape(5.dp),
@@ -177,24 +185,51 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 )
                 
                 LoginField(
-                    value = newUserName,
-                    onChange = { newUserName = it },
+                    value = newUser.fullName,
+                    onChange = { newUser = newUser.copy(fullName = it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Nombre Completo",
+                    placeholder = "Ingresa tu nombre completo"
+                )
+                
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                LoginField(
+                    value = newUser.username,
+                    onChange = { newUser = newUser.copy(username = it) },
                     modifier = Modifier.fillMaxWidth(),
                     label = "Nombre de Usuario",
-                    placeholder = "Ingresa el nombre del nuevo usuario"
+                    placeholder = "Ingresa tu nombre de usuario"
+                )
+                
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                PasswordField(
+                    value = newUser.password,
+                    onChange = { newUser = newUser.copy(password = it) },
+                    submit = {
+                        if (newUser.isComplete()) {
+                            viewModel.createUser(newUser.fullName, newUser.username, newUser.password)
+                        } else {
+                            Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Contraseña",
+                    placeholder = "Ingresa una contraseña (mín. 6 caracteres)"
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 
                 Button(
                     onClick = {
-                        if (newUserName.isNotBlank()) {
-                            viewModel.createUser(newUserName)
+                        if (newUser.isComplete()) {
+                            viewModel.createUser(newUser.fullName, newUser.username, newUser.password)
                         } else {
-                            Toast.makeText(context, "Por favor ingresa un nombre", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    enabled = newUserName.isNotBlank() && !isLoading,
+                    enabled = newUser.isComplete() && !isLoading,
                     shape = RoundedCornerShape(5.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
@@ -218,7 +253,7 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 OutlinedButton(
                     onClick = { 
                         showCreateUser = false
-                        newUserName = ""
+                        newUser = NewUserCredentials()
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(5.dp)
@@ -230,17 +265,14 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
     }
 }
 
-fun checkCredentials(creds: Credentials, context: Context, navController: NavController, viewModel: UserViewModel): Boolean {
-    if (creds.isNotEmpty()) {
-
-        //TODO: Implementar autenticación real - por ahora solo buscar usuario por nombre
-        viewModel.getUserById(creds.login)
-        
-        // La navegación se maneja en BodyContent cuando user != null
-        return true
-    } else {
-        Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_SHORT).show()
-        return false
+// Clase para definir los campos de registro de nuevo usuario
+data class NewUserCredentials(
+    var fullName: String = "",
+    var username: String = "",
+    var password: String = ""
+) {
+    fun isComplete(): Boolean {
+        return fullName.isNotEmpty() && username.isNotEmpty() && password.isNotEmpty()
     }
 }
 

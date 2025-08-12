@@ -25,6 +25,14 @@ class HuertoPlanRepository @Inject constructor(
         userDao.getUserById(id)
     }
     
+    suspend fun getUserByUsername(username: String): User? = withContext(Dispatchers.IO) {
+        userDao.getUserByUsername(username)
+    }
+    
+    suspend fun countUsersByUsername(username: String): Int = withContext(Dispatchers.IO) {
+        userDao.countUsersByUsername(username)
+    }
+    
     fun getAllUsers(): Flow<List<User>> = userDao.getAllUsers()
     
     suspend fun updateUser(user: User) = withContext(Dispatchers.IO) {

@@ -28,7 +28,7 @@ class MainRepository @Inject constructor() {
     }
 
     private fun createMockUser(userId: String): User {
-        val mockUser = User(userId, "Usuario Mock")
+        val mockUser = User(userId, "Usuario Mock", "mock_user", "mock_password_hash")
         users.add(mockUser)
         
         // Crear datos mock para este usuario

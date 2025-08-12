@@ -9,7 +9,7 @@ import com.wyllyw.huertoplan.model.*
 
 @Database(
     entities = [User::class, Terrain::class, Sector::class, Bancal::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class HuertoPlanDatabase : RoomDatabase() {
