@@ -10,7 +10,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.HuertoPlan"
-        android:name="HuertoApp"
+        android:name=".HuertoApp"
         >
         <activity
             android:name=".MainActivity"

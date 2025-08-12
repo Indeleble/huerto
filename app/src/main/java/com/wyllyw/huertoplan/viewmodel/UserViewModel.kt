@@ -62,9 +62,9 @@ class UserViewModel @Inject constructor(private val repository: MainRepository) 
         }
     }
 
-    fun createTerrain(name: String, location: String) {
+    fun createTerrain(name: String) {
         val userId = _user.value?.id ?: return
-        val newTerrain = repository.createTerrain(name, location, userId)
+        val newTerrain = repository.createTerrain(name, userId)
         _terrains.value = _terrains.value + newTerrain
     }
 

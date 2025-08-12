@@ -42,7 +42,7 @@ class MainRepository @Inject constructor() {
         return terrains.filter { it.userId == userId }
     }
 
-    fun createTerrain(name: String, location: String, userId: String): Terrain {
+    fun createTerrain(name: String, userId: String): Terrain {
         val newTerrain = Terrain(
             id = UUID.randomUUID().toString(),
             name = name,

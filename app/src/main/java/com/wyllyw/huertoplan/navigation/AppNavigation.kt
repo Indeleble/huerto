@@ -9,17 +9,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wyllyw.huertoplan.screens.BancalesScreen
 import com.wyllyw.huertoplan.screens.SingUpScreen
-import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import com.wyllyw.huertoplan.presentation.viewmodel.UserViewModel
 
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val userViewModel: UserViewModel = hiltViewModel()
     NavHost(navController = navController, startDestination = AppScreens.SingUpScreen.route, enterTransition =  { slideIntoContainer(
         AnimatedContentTransitionScope.SlideDirection.Start, tween(500)) },) {
-        composable(route = AppScreens.SingUpScreen.route) { SingUpScreen(navController, userViewModel) }
-        composable(route = AppScreens.BancalesScreen.route) { BancalesScreen(navController, userViewModel) }
+        composable(route = AppScreens.SingUpScreen.route) { SingUpScreen(navController) }
+        composable(route = AppScreens.BancalesScreen.route) { BancalesScreen(navController) }
     }
 
 }

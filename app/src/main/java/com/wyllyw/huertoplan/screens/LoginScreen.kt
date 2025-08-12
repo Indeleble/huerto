@@ -50,14 +50,17 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import com.wyllyw.huertoplan.presentation.viewmodel.UserViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.TextFieldDefaults
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun SingUpScreen (navController: NavController,  viewModel: UserViewModel) {
+fun SingUpScreen (navController: NavController, viewModel: UserViewModel = hiltViewModel()) {
 
     //Declaramos estructura base la pantalla de login
     Scaffold(
@@ -77,7 +80,27 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
         color = MaterialTheme.colorScheme.background
     ) {
         var credentials by remember { mutableStateOf(Credentials()) }
+        var newUserName by remember { mutableStateOf("") }
+        var showCreateUser by remember { mutableStateOf(false) }
         val context = LocalContext.current
+        
+        // Observar estados del ViewModel
+        val user by viewModel.user.collectAsState()
+        val isLoading by viewModel.isLoading.collectAsState()
+        val error by viewModel.error.collectAsState()
+        
+        // Efecto para navegar cuando el usuario se cree exitosamente
+        if (user != null && !isLoading) {
+            navController.navigate(AppScreens.BancalesScreen.route) {
+                popUpTo(AppScreens.SingUpScreen.route) { inclusive = true }
+            }
+        }
+        
+        // Mostrar error si existe
+        error?.let { errorMessage ->
+            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
+        }
 
         Column(
             verticalArrangement = Arrangement.Center,
@@ -86,43 +109,122 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
         ) {
-            LoginField(
-                value = credentials.login,
-                onChange = { data -> credentials = credentials.copy(login = data) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            PasswordField(
-                value = credentials.pwd,
-                onChange = { data -> credentials = credentials.copy(pwd = data) },
-                submit = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) 
-                        credentials = Credentials()
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            LabeledCheckbox(
-                label = "Remember Me",
-                onCheckChanged = {
-                    credentials = credentials.copy(remember = !credentials.remember)
-                },
-                isChecked = credentials.remember
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            Button(
-                onClick = {
-                    if (!checkCredentials(credentials, context, navController, viewModel)) 
-                        credentials = Credentials()
-                },
-                enabled = credentials.isNotEmpty(),
-                shape = RoundedCornerShape(5.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+            if (!showCreateUser) {
+                // Pantalla de Login
+                LoginField(
+                    value = credentials.login,
+                    onChange = { data -> credentials = credentials.copy(login = data) },
+                    modifier = Modifier.fillMaxWidth()
                 )
-            ) {
-                Text("Login")
+                PasswordField(
+                    value = credentials.pwd,
+                    onChange = { data -> credentials = credentials.copy(pwd = data) },
+                    submit = {
+                        if (!checkCredentials(credentials, context, navController, viewModel)) 
+                            credentials = Credentials()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LabeledCheckbox(
+                    label = "Remember Me",
+                    onCheckChanged = {
+                        credentials = credentials.copy(remember = !credentials.remember)
+                    },
+                    isChecked = credentials.remember
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        if (!checkCredentials(credentials, context, navController, viewModel)) 
+                            credentials = Credentials()
+                    },
+                    enabled = credentials.isNotEmpty() && !isLoading,
+                    shape = RoundedCornerShape(5.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Login")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                // Botón para cambiar a crear usuario
+                OutlinedButton(
+                    onClick = { showCreateUser = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(5.dp)
+                ) {
+                    Text("Crear Usuario")
+                }
+            } else {
+                // Pantalla de Crear Usuario
+                Text(
+                    "Crear Nuevo Usuario",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                )
+                
+                LoginField(
+                    value = newUserName,
+                    onChange = { newUserName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Nombre de Usuario",
+                    placeholder = "Ingresa el nombre del nuevo usuario"
+                )
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                Button(
+                    onClick = {
+                        if (newUserName.isNotBlank()) {
+                            viewModel.createUser(newUserName)
+                        } else {
+                            Toast.makeText(context, "Por favor ingresa un nombre", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = newUserName.isNotBlank() && !isLoading,
+                    shape = RoundedCornerShape(5.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Crear Usuario")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                // Botón para volver al login
+                OutlinedButton(
+                    onClick = { 
+                        showCreateUser = false
+                        newUserName = ""
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(5.dp)
+                ) {
+                    Text("Volver al Login")
+                }
             }
         }
     }
@@ -131,12 +233,10 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
 fun checkCredentials(creds: Credentials, context: Context, navController: NavController, viewModel: UserViewModel): Boolean {
     if (creds.isNotEmpty()) {
 
-        //TODO Hacer algoooorrrrrr
-
-        viewModel.setUser(creds.login)
-        navController.navigate(AppScreens.BancalesScreen.route)
-       //navController.setUser(new User())
-
+        //TODO: Implementar autenticación real - por ahora solo buscar usuario por nombre
+        viewModel.getUserById(creds.login)
+        
+        // La navegación se maneja en BodyContent cuando user != null
         return true
     } else {
         Toast.makeText(context, "Wrong Credentials", Toast.LENGTH_SHORT).show()

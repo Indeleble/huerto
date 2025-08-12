@@ -38,13 +38,13 @@ import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
 import com.wyllyw.huertoplan.screens.popups.CreateSectorDialog
-import com.wyllyw.huertoplan.viewmodel.UserViewModel
+import com.wyllyw.huertoplan.presentation.viewmodel.UserViewModel
 import kotlin.math.roundToInt
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun BancalesScreen(navController: NavController, viewModel: UserViewModel) {
+fun BancalesScreen(navController: NavController, viewModel: UserViewModel = hiltViewModel()) {
 
     Scaffold(
         topBar = {
@@ -116,16 +116,36 @@ fun BancalDraggable(
 @Composable
 fun BancalesBodyContent(viewModel: UserViewModel) {
 
-    val bancales: List<Bancal> by viewModel.bancales.collectAsStateWithLifecycle()
+    // Por ahora mostraremos una lista vacía ya que el UserViewModel no maneja bancales
+    // TODO: Implementar BancalViewModel separado para manejar los bancales
+    val bancales: List<Bancal> = emptyList() // viewModel.bancales.collectAsStateWithLifecycle()
     var showCreateSectorPopup by rememberSaveable { mutableStateOf(false) }
 
     val freeScrollState = rememberFreeScrollState()
+    
+    val user by viewModel.user.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        
+        // Mostrar información del usuario logueado
+        user?.let { currentUser ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Bienvenido, ${currentUser.name}!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
 
         Box(
             modifier = Modifier
@@ -140,6 +160,20 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     .freeScroll(state = freeScrollState)
             ) {
+                // Mostrar mensaje si no hay bancales
+                if (bancales.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No hay bancales aún.\nUsa el botón 'Crear' para empezar.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
                 bancales.forEach { bancal ->
                     BancalDraggable(
                         bancal = bancal,
@@ -147,7 +181,8 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                             println("Bancal ${clickedBancal.name} clicked")
                         },
                         onBancalMoved = { movedBancal, newX, newY ->
-                            viewModel.updateBancalPosition(movedBancal.id, newX, newY)
+                            // TODO: Implementar actualización de posición
+                            println("Bancal ${movedBancal.name} moved to ($newX, $newY)")
                         }
                     )
                 }
@@ -168,7 +203,7 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 )
             ) {
-                Text(text = "Crear")
+                Text(text = "Crear Bancal")
             }
         }
     }
