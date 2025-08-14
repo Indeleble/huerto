@@ -15,7 +15,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -58,6 +57,10 @@ class BancalViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
+
+    // Control de escala/zoom
+    private val _scale = MutableStateFlow(1.0f) // Escala por defecto
+    val scale = _scale.asStateFlow()
 
     private val _currentUserId = MutableStateFlow<String?>(null)
     
@@ -274,6 +277,37 @@ class BancalViewModel @Inject constructor(
         return _selectedSector.value?.name ?: "Seleccionar sector"
     }
     
+    fun zoomIn() {
+        val currentScale = _scale.value
+        val newScale = (currentScale * 1.25f).coerceAtMost(3.0f) // Máximo 300%
+        if (newScale != currentScale) {
+            _scale.value = newScale
+            Log.d(TAG, "🔍 Zoom In: Escala cambiada de ${(currentScale * 100).toInt()}% a ${(newScale * 100).toInt()}%")
+            Log.d(TAG, "📱 StateFlow scale updated to: $newScale - UI should recompose")
+        } else {
+            Log.d(TAG, "🔍 Zoom In: Ya en escala máxima (${(newScale * 100).toInt()}%)")
+        }
+    }
+    
+    fun zoomOut() {
+        val currentScale = _scale.value
+        val newScale = (currentScale / 1.25f).coerceAtLeast(0.25f) // Mínimo 25%
+        if (newScale != currentScale) {
+            _scale.value = newScale
+            Log.d(TAG, "🔍 Zoom Out: Escala cambiada de ${(currentScale * 100).toInt()}% a ${(newScale * 100).toInt()}%")
+            Log.d(TAG, "📱 StateFlow scale updated to: $newScale - UI should recompose")
+        } else {
+            Log.d(TAG, "🔍 Zoom Out: Ya en escala mínima (${(newScale * 100).toInt()}%)")
+        }
+    }
+    
+    fun resetZoom() {
+        val currentScale = _scale.value
+        _scale.value = 1.0f
+        Log.d(TAG, "🔍 Zoom Reset: Escala cambiada de ${(currentScale * 100).toInt()}% a 100%")
+        Log.d(TAG, "📱 StateFlow scale reset to: 1.0 - UI should recompose")
+    }
+
     fun hasSelections(): Boolean {
         val hasTerrainSelection = _selectedTerrain.value != null
         val hasSectorSelection = _selectedSector.value != null

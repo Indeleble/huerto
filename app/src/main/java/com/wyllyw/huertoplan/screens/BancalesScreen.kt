@@ -20,17 +20,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,8 +46,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -79,17 +86,45 @@ fun BancalesScreen(navController: NavController, userViewModel: UserViewModel) {
 @Composable
 fun BancalDraggable(
     bancal: Bancal,
+    scale: Float = 1.0f,
     onBancalClick: (Bancal) -> Unit,
     onBancalMoved: (Bancal, Float, Float) -> Unit
 ) {
-    var offsetX by remember { mutableStateOf(bancal.x) }
-    var offsetY by remember { mutableStateOf(bancal.y) }
+    // Posiciones escaladas para la visualización
+    var offsetX by remember { mutableStateOf(bancal.x * scale) }
+    var offsetY by remember { mutableStateOf(bancal.y * scale) }
     var isDragging by remember { mutableStateOf(false) }
+    var lastScale by remember { mutableStateOf(scale) }
+    
+    // Actualizar posiciones cuando cambie el bancal (pero no solo la escala)
+    LaunchedEffect(bancal.id, bancal.x, bancal.y) {
+        if (!isDragging) {
+            offsetX = bancal.x * scale
+            offsetY = bancal.y * scale
+            Log.d("BancalDraggable", "📍 Updated positions for ${bancal.name}: scaled pos ($offsetX, $offsetY) from real pos (${bancal.x}, ${bancal.y}) at scale $scale")
+            Log.d("BancalDraggable", "📐 Visual size: ${bancal.width * 2}×${bancal.height} (real: ${bancal.width}×${bancal.height})")
+        }
+    }
+    
+    // Manejar cambios de escala manteniendo la posición relativa
+    LaunchedEffect(scale) {
+        if (!isDragging && scale != lastScale) {
+            val scaleRatio = scale / lastScale
+            offsetX *= scaleRatio
+            offsetY *= scaleRatio
+            Log.d("BancalDraggable", "🔄 Scale changed from $lastScale to $scale: adjusting positions by ratio $scaleRatio")
+            Log.d("BancalDraggable", "📍 New scaled positions: ($offsetX, $offsetY)")
+            lastScale = scale
+        }
+    }
 
     Box(
         modifier = Modifier
             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-            .size(width = (bancal.width * 70).dp, height = (bancal.height * 70).dp)
+            .size(
+                width = (bancal.width * 2 * 70 * scale).dp,  // Ancho visual = ancho real × 2
+                height = (bancal.height * 70 * scale).dp      // Alto normal
+            )
             .background(
                 color = if (isDragging) 
                     MaterialTheme.colorScheme.primary 
@@ -104,8 +139,11 @@ fun BancalDraggable(
                         isDragging = true
                     },
                     onDragEnd = {
-                        Log.d("BancalDraggable", "🎯 Drag ended for bancal: ${bancal.name} final position: ($offsetX, $offsetY)")
+                        val realX = offsetX / scale
+                        val realY = offsetY / scale
+                        Log.d("BancalDraggable", "🎯 Drag ended for bancal: ${bancal.name} final scaled position: ($offsetX, $offsetY), real position: ($realX, $realY)")
                         isDragging = false
+                        // Las posiciones ya se actualizarán automáticamente por LaunchedEffect cuando se actualice el bancal en la DB
                     },
                     onDragCancel = {
                         Log.d("BancalDraggable", "🎯 Drag cancelled for bancal: ${bancal.name}")
@@ -119,11 +157,21 @@ fun BancalDraggable(
                         offsetX += dragAmount.x
                         offsetY += dragAmount.y
                         
-                        // Limitar movimiento dentro del área de trabajo
-                        offsetX = offsetX.coerceIn(0f, 3000f * density - bancal.width * 70 * density)
-                        offsetY = offsetY.coerceIn(0f, 2000f * density - bancal.height * 70 * density)
+                        // Limitar movimiento dentro del área de trabajo (considerar ancho visual doble)
+                        val visualWidth = bancal.width * 2 * 70 * scale * density  // Ancho visual
+                        val visualHeight = bancal.height * 70 * scale * density     // Alto normal
+                        val maxX = 3000f * density * scale - visualWidth
+                        val maxY = 2000f * density * scale - visualHeight
+                        offsetX = offsetX.coerceIn(0f, maxX)
+                        offsetY = offsetY.coerceIn(0f, maxY)
                         
-                        onBancalMoved(bancal, offsetX, offsetY)
+                        // Convertir posición escalada a posición real (sin escalar) para almacenar
+                        val realX = offsetX / scale
+                        val realY = offsetY / scale
+                        
+                        Log.d("BancalDraggable", "🔄 Scaling: visual pos ($offsetX, $offsetY) -> real pos ($realX, $realY) at scale $scale")
+                        Log.d("BancalDraggable", "💾 Saving real position for ${bancal.name}: ($realX, $realY)")
+                        onBancalMoved(bancal, realX, realY)
                     }
                 }
             }
@@ -132,12 +180,18 @@ fun BancalDraggable(
                     onBancalClick(bancal)
                 }
             },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
         Text(
             text = bancal.name,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.padding(8.dp)
+            fontSize = (12 * scale).sp,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = (4 * scale).dp, vertical = (2 * scale).dp)
         )
     }
 }
@@ -154,6 +208,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
     // Observar los estados de selección para trigger recomposición del botón
     val selectedTerrain by bancalViewModel.selectedTerrain.collectAsStateWithLifecycle()
     val selectedSector by bancalViewModel.selectedSector.collectAsStateWithLifecycle()
+    val scale by bancalViewModel.scale.collectAsStateWithLifecycle()
     
     var showCreateBancalDialog by rememberSaveable { mutableStateOf(false) }
     val freeScrollState = rememberFreeScrollState()
@@ -210,23 +265,24 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
             )
-            // Área de trabajo más grande para bancales con grid visual
+            // Área de trabajo escalada para bancales con grid visual
             Box(
                 modifier = Modifier
-                    .size(width = 3000.dp, height = 2000.dp) // Tamaño más razonable
+                    .size(width = (3000 * scale).dp, height = (2000 * scale).dp) // Área escalada
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f))
             ) {
                 // Grid pattern de fondo (opcional)
                 GridPattern(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    scale = scale
                 )
                 
                 // Mostrar mensaje si no hay bancales
                 if (bancales.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .size(400.dp, 300.dp) // Área central para el mensaje
-                            .offset(x = 1300.dp, y = 850.dp), // Centrado en el área
+                            .size((400 * scale).dp, (300 * scale).dp) // Área central escalada para el mensaje
+                            .offset(x = (1300 * scale).dp, y = (850 * scale).dp), // Centrado en el área escalada
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -257,6 +313,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                 bancales.forEach { bancal ->
                     BancalDraggable(
                         bancal = bancal,
+                        scale = scale,
                         onBancalClick = { clickedBancal ->
                             bancalViewModel.selectBancal(clickedBancal)
                         },
@@ -280,18 +337,20 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Botón de crear bancal
-            Box(
-                modifier = Modifier.fillMaxWidth()
+            // Botón de crear bancal con controles de zoom
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val hasSelections = selectedTerrain != null && selectedSector != null
                 val buttonEnabled = !isLoading && hasSelections
                 
                 Log.d("BancalesScreen", "🔴 Button state: isLoading=$isLoading, hasSelections=$hasSelections (terrain=${selectedTerrain?.name}, sector=${selectedSector?.name}), buttonEnabled=$buttonEnabled")
+                Log.d("BancalesScreen", "🔍 Current scale: ${(scale * 100).toInt()}%")
                 
                 Button(
                     onClick = { showCreateBancalDialog = true },
-                    modifier = Modifier.align(Alignment.Center),
                     enabled = buttonEnabled,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -299,6 +358,45 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                     )
                 ) {
                     Text(text = "Crear Bancal")
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                // Controles de zoom
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Botón zoom out (-)
+                    IconButton(
+                        onClick = { bancalViewModel.zoomOut() },
+                        enabled = scale > 0.25f
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Reducir zoom",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    // Indicador de escala
+                    Text(
+                        text = "${(scale * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    
+                    // Botón zoom in (+)
+                    IconButton(
+                        onClick = { bancalViewModel.zoomIn() },
+                        enabled = scale < 3.0f
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Aumentar zoom",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -487,12 +585,13 @@ fun TerrainSectorSelectors(bancalViewModel: BancalViewModel) {
 fun GridPattern(
     modifier: Modifier = Modifier,
     gridSize: Float = 100f, // Tamaño de cada celda del grid en dp convertido a píxeles
+    scale: Float = 1.0f,
     color: Color = Color.Gray.copy(alpha = 0.2f)
 ) {
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-        val gridSizePx = gridSize // Ya está en píxeles de densidad
+        val gridSizePx = gridSize * scale // Aplicar escala al tamaño del grid
 
         // Líneas verticales
         var x = 0f
