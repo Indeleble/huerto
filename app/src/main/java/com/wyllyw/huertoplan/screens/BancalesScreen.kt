@@ -1,20 +1,32 @@
 package com.wyllyw.huertoplan.screens
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,21 +50,25 @@ import com.wyllyw.huertoplan.model.Bancal
 import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
 import com.wyllyw.huertoplan.screens.popups.CreateSectorDialog
+import com.wyllyw.huertoplan.screens.popups.CreateBancalDialog
 import com.wyllyw.huertoplan.presentation.viewmodel.UserViewModel
+import com.wyllyw.huertoplan.presentation.viewmodel.BancalViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import kotlin.math.roundToInt
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun BancalesScreen(navController: NavController, viewModel: UserViewModel = hiltViewModel()) {
+fun BancalesScreen(navController: NavController, userViewModel: UserViewModel) {
+    val bancalViewModel: BancalViewModel = hiltViewModel()
 
     Scaffold(
         topBar = {
             BarraSuperior(navController, "Bancales", true)
         },
     ) {
-        //BancalesBodyContent(navController = navController, viewModel)
-        BancalesBodyContent(viewModel)
+        BancalesBodyContent(userViewModel, bancalViewModel)
     }
 
 }
@@ -114,16 +130,35 @@ fun BancalDraggable(
 }
 
 @Composable
-fun BancalesBodyContent(viewModel: UserViewModel) {
+fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalViewModel) {
 
-    // Por ahora mostraremos una lista vacía ya que el UserViewModel no maneja bancales
-    // TODO: Implementar BancalViewModel separado para manejar los bancales
-    val bancales: List<Bancal> = emptyList() // viewModel.bancales.collectAsStateWithLifecycle()
-    var showCreateSectorPopup by rememberSaveable { mutableStateOf(false) }
-
-    val freeScrollState = rememberFreeScrollState()
+    val bancales by bancalViewModel.bancales.collectAsStateWithLifecycle()
+    val isLoading by bancalViewModel.isLoading.collectAsStateWithLifecycle()
+    val error by bancalViewModel.error.collectAsStateWithLifecycle()
+    val user by userViewModel.user.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     
-    val user by viewModel.user.collectAsStateWithLifecycle()
+    // Observar los estados de selección para trigger recomposición del botón
+    val selectedTerrain by bancalViewModel.selectedTerrain.collectAsStateWithLifecycle()
+    val selectedSector by bancalViewModel.selectedSector.collectAsStateWithLifecycle()
+    
+    var showCreateBancalDialog by rememberSaveable { mutableStateOf(false) }
+    val freeScrollState = rememberFreeScrollState()
+
+    // Configurar el userId en el BancalViewModel cuando el usuario esté disponible
+    user?.let { currentUser ->
+        Log.d("BancalesScreen", "User loaded: ${currentUser.name} (id: ${currentUser.id})")
+        Log.d("BancalesScreen", "Calling bancalViewModel.setUserId(${currentUser.id})")
+        bancalViewModel.setUserId(currentUser.id)
+    } ?: run {
+        Log.w("BancalesScreen", "User is null - BancalViewModel will not be initialized")
+    }
+    
+    // Mostrar errores como Toast
+    error?.let { errorMessage ->
+        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+        bancalViewModel.clearError()
+    }
 
     Column(
         modifier = Modifier
@@ -166,11 +201,21 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No hay bancales aún.\nUsa el botón 'Crear' para empezar.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "🌱 No hay bancales aún",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Usa el botón 'Crear Bancal' para empezar",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
                 }
                 
@@ -178,7 +223,7 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
                     BancalDraggable(
                         bancal = bancal,
                         onBancalClick = { clickedBancal ->
-                            println("Bancal ${clickedBancal.name} clicked")
+                            bancalViewModel.selectBancal(clickedBancal)
                         },
                         onBancalMoved = { movedBancal, newX, newY ->
                             // TODO: Implementar actualización de posición
@@ -189,34 +234,216 @@ fun BancalesBodyContent(viewModel: UserViewModel) {
             }
         }
 
-        // Botón de crear con colores del theme
-        Box(
+        // Selectores y botón de crear bancal
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Button(
-                onClick = { showCreateSectorPopup = true },
-                modifier = Modifier.align(Alignment.Center),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
+            // Fila con los selectores de terreno y sector
+            TerrainSectorSelectors(bancalViewModel)
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Botón de crear bancal
+            Box(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Crear Bancal")
+                val hasSelections = selectedTerrain != null && selectedSector != null
+                val buttonEnabled = !isLoading && hasSelections
+                
+                Log.d("BancalesScreen", "🔴 Button state: isLoading=$isLoading, hasSelections=$hasSelections (terrain=${selectedTerrain?.name}, sector=${selectedSector?.name}), buttonEnabled=$buttonEnabled")
+                
+                Button(
+                    onClick = { showCreateBancalDialog = true },
+                    modifier = Modifier.align(Alignment.Center),
+                    enabled = buttonEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(text = "Crear Bancal")
+                }
             }
         }
     }
-/*
-    CreateSectorDialog(
-        terrain = viewModel.getCurrentTerrain(),
-        showPopup = showCreateSectorPopup,
-        onDismissRequest = { showCreateSectorPopup = false },
-        onConfirmation = { name: String, terreno: Terrain ->
-            viewModel.createSector(name)
-            showCreateSectorPopup = false
+    
+    // Dialog para crear bancal
+    CreateBancalDialog(
+        showDialog = showCreateBancalDialog,
+        sectorName = bancalViewModel.getCurrentSectorName(),
+        isLoading = isLoading,
+        onDismiss = { showCreateBancalDialog = false },
+        onConfirm = { name, width, height ->
+            bancalViewModel.createBancal(name, width, height)
+            showCreateBancalDialog = false
         }
     )
-    */
 
+}
+
+@Composable
+fun TerrainSelectorDropdown(
+    selectedTerrainName: String,
+    terrains: List<com.wyllyw.huertoplan.model.Terrain>,
+    onTerrainSelected: (com.wyllyw.huertoplan.model.Terrain) -> Unit,
+    enabled: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedButton(
+            onClick = { if (enabled) expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "🏞️ $selectedTerrainName",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Seleccionar terreno"
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            terrains.forEach { terrain ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = terrain.name,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        onTerrainSelected(terrain)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SectorSelectorDropdown(
+    selectedSectorName: String,
+    sectors: List<com.wyllyw.huertoplan.model.Sector>,
+    onSectorSelected: (com.wyllyw.huertoplan.model.Sector) -> Unit,
+    enabled: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedButton(
+            onClick = { if (enabled) expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "📍 $selectedSectorName",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Seleccionar sector"
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            sectors.forEach { sector ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = sector.name,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    onClick = {
+                        onSectorSelected(sector)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TerrainSectorSelectors(bancalViewModel: BancalViewModel) {
+    val terrains by bancalViewModel.terrains.collectAsStateWithLifecycle()
+    val sectors by bancalViewModel.sectors.collectAsStateWithLifecycle()
+    val selectedTerrain by bancalViewModel.selectedTerrain.collectAsStateWithLifecycle()
+    val selectedSector by bancalViewModel.selectedSector.collectAsStateWithLifecycle()
+    
+    // Log del estado actual de los selectores
+    Log.d("TerrainSectorSelectors", "UI State - Terrains: ${terrains.size}, Sectors: ${sectors.size}")
+    Log.d("TerrainSectorSelectors", "Selected Terrain: ${selectedTerrain?.name ?: "None"}")
+    Log.d("TerrainSectorSelectors", "Selected Sector: ${selectedSector?.name ?: "None"}")
+    Log.d("TerrainSectorSelectors", "Has selections: ${bancalViewModel.hasSelections()}")
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Selector de terreno
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Terreno",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            TerrainSelectorDropdown(
+                selectedTerrainName = bancalViewModel.getCurrentTerrainName(),
+                terrains = terrains,
+                onTerrainSelected = { terrain ->
+                    bancalViewModel.selectTerrain(terrain)
+                },
+                enabled = terrains.isNotEmpty()
+            )
+        }
+
+        // Selector de sector
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Sector",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            SectorSelectorDropdown(
+                selectedSectorName = bancalViewModel.getCurrentSectorName(),
+                sectors = sectors,
+                onSectorSelected = { sector ->
+                    bancalViewModel.selectSector(sector)
+                },
+                enabled = sectors.isNotEmpty()
+            )
+        }
+    }
 }

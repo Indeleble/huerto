@@ -60,7 +60,7 @@ import androidx.compose.material3.TextFieldDefaults
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun SingUpScreen (navController: NavController, viewModel: UserViewModel = hiltViewModel()) {
+fun SingUpScreen (navController: NavController, viewModel: UserViewModel) {
 
     //Declaramos estructura base la pantalla de login
     Scaffold(
@@ -91,8 +91,12 @@ fun BodyContent(navController: NavController, viewModel: UserViewModel) {
         
         // Efecto para navegar cuando el usuario se cree exitosamente
         if (user != null && !isLoading) {
+            // NO destruir la pila de navegación para preservar el UserViewModel
             navController.navigate(AppScreens.BancalesScreen.route) {
-                popUpTo(AppScreens.SingUpScreen.route) { inclusive = true }
+                // Solo limpiar hasta el screen de login, pero mantenerlo en la pila
+                popUpTo(AppScreens.SingUpScreen.route) { inclusive = false }
+                // Evitar múltiples copias de BancalesScreen
+                launchSingleTop = true
             }
         }
         
