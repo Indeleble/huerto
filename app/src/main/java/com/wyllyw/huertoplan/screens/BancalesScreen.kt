@@ -157,11 +157,12 @@ fun BancalDraggable(
                         offsetX += dragAmount.x
                         offsetY += dragAmount.y
                         
-                        // Limitar movimiento dentro del área de trabajo (considerar ancho visual doble)
-                        val visualWidth = bancal.width * 2 * 70 * scale * density  // Ancho visual
-                        val visualHeight = bancal.height * 70 * scale * density     // Alto normal
-                        val maxX = 3000f * density * scale - visualWidth
-                        val maxY = 2000f * density * scale - visualHeight
+                        // Limitar movimiento dentro del área de trabajo (considerar escalado inverso)
+                        val workspaceScale = 1f / scale  // Escalado inverso del área
+                        val visualWidth = bancal.width * 2 * 70 * scale * density   // Ancho visual del bancal
+                        val visualHeight = bancal.height * 70 * scale * density      // Alto visual del bancal
+                        val maxX = 3000f * density * workspaceScale - visualWidth   // Área más grande con zoom out
+                        val maxY = 2000f * density * workspaceScale - visualHeight
                         offsetX = offsetX.coerceIn(0f, maxX)
                         offsetY = offsetY.coerceIn(0f, maxY)
                         
@@ -265,24 +266,25 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
             )
-            // Área de trabajo escalada para bancales con grid visual
+            // Área de trabajo con escalado inverso: más grande con zoom out, más pequeña con zoom in
+            val workspaceScale = 1f / scale  // Escalado inverso
             Box(
                 modifier = Modifier
-                    .size(width = (3000 * scale).dp, height = (2000 * scale).dp) // Área escalada
+                    .size(width = (3000 * workspaceScale).dp, height = (2000 * workspaceScale).dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f))
             ) {
                 // Grid pattern de fondo (opcional)
                 GridPattern(
                     modifier = Modifier.fillMaxSize(),
-                    scale = scale
+                    scale = 1.0f  // Grid con tamaño fijo, independiente del zoom
                 )
                 
                 // Mostrar mensaje si no hay bancales
                 if (bancales.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .size((400 * scale).dp, (300 * scale).dp) // Área central escalada para el mensaje
-                            .offset(x = (1300 * scale).dp, y = (850 * scale).dp), // Centrado en el área escalada
+                            .size((400 * workspaceScale).dp, (300 * workspaceScale).dp) // Área escalada inversamente
+                            .offset(x = (1300 * workspaceScale).dp, y = (850 * workspaceScale).dp), // Centrado
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -348,6 +350,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                 
                 Log.d("BancalesScreen", "🔴 Button state: isLoading=$isLoading, hasSelections=$hasSelections (terrain=${selectedTerrain?.name}, sector=${selectedSector?.name}), buttonEnabled=$buttonEnabled")
                 Log.d("BancalesScreen", "🔍 Current scale: ${(scale * 100).toInt()}%")
+                Log.d("BancalesScreen", "📏 Workspace scale: ${(1f/scale * 100).toInt()}% (inverse of zoom)")
                 
                 Button(
                     onClick = { showCreateBancalDialog = true },
