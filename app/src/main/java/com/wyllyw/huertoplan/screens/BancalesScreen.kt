@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -96,20 +99,30 @@ fun BancalDraggable(
             )
             .pointerInput(bancal.id) {
                 detectDragGestures(
-                    onDragStart = {
+                    onDragStart = { offset ->
+                        Log.d("BancalDraggable", "🎯 Drag started for bancal: ${bancal.name} at offset: $offset")
                         isDragging = true
                     },
                     onDragEnd = {
+                        Log.d("BancalDraggable", "🎯 Drag ended for bancal: ${bancal.name} final position: ($offsetX, $offsetY)")
                         isDragging = false
                     },
                     onDragCancel = {
+                        Log.d("BancalDraggable", "🎯 Drag cancelled for bancal: ${bancal.name}")
                         isDragging = false
                     }
                 ) { change, dragAmount ->
-                    if (kotlin.math.abs(dragAmount.x) > 1f || kotlin.math.abs(dragAmount.y) > 1f) {
+                    // Umbral mínimo para distinguir drag de scroll accidental
+                    val minDragThreshold = 3f
+                    if (kotlin.math.abs(dragAmount.x) > minDragThreshold || kotlin.math.abs(dragAmount.y) > minDragThreshold) {
                         change.consume()
                         offsetX += dragAmount.x
                         offsetY += dragAmount.y
+                        
+                        // Limitar movimiento dentro del área de trabajo
+                        offsetX = offsetX.coerceIn(0f, 3000f * density - bancal.width * 70 * density)
+                        offsetY = offsetY.coerceIn(0f, 2000f * density - bancal.height * 70 * density)
+                        
                         onBancalMoved(bancal, offsetX, offsetY)
                     }
                 }
@@ -182,6 +195,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
             }
         }
 
+        // Área scrolleable para bancales con scroll libre mejorado  
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -189,16 +203,30 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                 .background(MaterialTheme.colorScheme.surface)
                 .freeScroll(state = freeScrollState)
         ) {
+            // Indicador de posición (minimap)
+            ScrollPositionIndicator(
+                freeScrollState = freeScrollState,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            )
+            // Área de trabajo más grande para bancales con grid visual
             Box(
                 modifier = Modifier
-                    .size(width = 5000.dp, height = 5000.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .freeScroll(state = freeScrollState)
+                    .size(width = 3000.dp, height = 2000.dp) // Tamaño más razonable
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f))
             ) {
+                // Grid pattern de fondo (opcional)
+                GridPattern(
+                    modifier = Modifier.fillMaxSize()
+                )
+                
                 // Mostrar mensaje si no hay bancales
                 if (bancales.isEmpty()) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .size(400.dp, 300.dp) // Área central para el mensaje
+                            .offset(x = 1300.dp, y = 850.dp), // Centrado en el área
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -215,10 +243,17 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
+                            Text(
+                                text = "💡 Arrastra para moverte por el área",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
                 
+                // Bancales draggables
                 bancales.forEach { bancal ->
                     BancalDraggable(
                         bancal = bancal,
@@ -443,6 +478,74 @@ fun TerrainSectorSelectors(bancalViewModel: BancalViewModel) {
                     bancalViewModel.selectSector(sector)
                 },
                 enabled = sectors.isNotEmpty()
+            )
+        }
+    }
+}
+
+@Composable
+fun GridPattern(
+    modifier: Modifier = Modifier,
+    gridSize: Float = 100f, // Tamaño de cada celda del grid en dp convertido a píxeles
+    color: Color = Color.Gray.copy(alpha = 0.2f)
+) {
+    Canvas(modifier = modifier) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
+        val gridSizePx = gridSize // Ya está en píxeles de densidad
+
+        // Líneas verticales
+        var x = 0f
+        while (x <= canvasWidth) {
+            drawLine(
+                color = color,
+                start = Offset(x, 0f),
+                end = Offset(x, canvasHeight),
+                strokeWidth = 1f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+            )
+            x += gridSizePx
+        }
+
+        // Líneas horizontales
+        var y = 0f
+        while (y <= canvasHeight) {
+            drawLine(
+                color = color,
+                start = Offset(0f, y),
+                end = Offset(canvasWidth, y),
+                strokeWidth = 1f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+            )
+            y += gridSizePx
+        }
+    }
+}
+
+@Composable
+fun ScrollPositionIndicator(
+    freeScrollState: com.chihsuanwu.freescroll.FreeScrollState,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(100.dp, 60.dp)
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                RoundedCornerShape(8.dp)
+            )
+            .padding(8.dp)
+    ) {
+        Column {
+            Text(
+                text = "📍 Vista",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "3000x2000 dp",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
