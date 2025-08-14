@@ -113,6 +113,10 @@ class HuertoPlanRepository @Inject constructor(
         bancalDao.updateBancal(bancal)
     }
     
+    suspend fun updateBancalPosition(bancalId: String, x: Float, y: Float) = withContext(Dispatchers.IO) {
+        bancalDao.updateBancalPosition(bancalId, x, y)
+    }
+    
     suspend fun deleteBancal(bancal: Bancal) = withContext(Dispatchers.IO) {
         bancalDao.deleteBancal(bancal)
     }

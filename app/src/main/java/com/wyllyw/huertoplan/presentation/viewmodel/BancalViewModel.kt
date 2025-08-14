@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wyllyw.huertoplan.domain.usecase.bancal.CreateBancalUseCase
 import com.wyllyw.huertoplan.domain.usecase.bancal.GetBancalesBySectorIdUseCase
+import com.wyllyw.huertoplan.domain.usecase.bancal.UpdateBancalPositionUseCase
 import com.wyllyw.huertoplan.domain.usecase.terrain.GetTerrainsByUserIdUseCase
 import com.wyllyw.huertoplan.domain.usecase.sector.GetSectorsByTerrainIdUseCase
 import com.wyllyw.huertoplan.model.Bancal
@@ -21,6 +22,7 @@ import javax.inject.Inject
 class BancalViewModel @Inject constructor(
     private val getBancalesBySectorIdUseCase: GetBancalesBySectorIdUseCase,
     private val createBancalUseCase: CreateBancalUseCase,
+    private val updateBancalPositionUseCase: UpdateBancalPositionUseCase,
     private val getTerrainsByUserIdUseCase: GetTerrainsByUserIdUseCase,
     private val getSectorsByTerrainIdUseCase: GetSectorsByTerrainIdUseCase
 ) : ViewModel() {
@@ -229,6 +231,25 @@ class BancalViewModel @Inject constructor(
                 _error.value = "Error al crear bancal: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun updateBancalPosition(bancal: Bancal, newX: Float, newY: Float) {
+        Log.d(TAG, "🔄 Updating bancal position: ${bancal.name} from (${bancal.x}, ${bancal.y}) to ($newX, $newY)")
+        viewModelScope.launch {
+            try {
+                updateBancalPositionUseCase(bancal.id, newX, newY)
+                    .onSuccess {
+                        Log.d(TAG, "✅ Position updated successfully in database for bancal: ${bancal.name}")
+                    }
+                    .onFailure { exception ->
+                        Log.e(TAG, "❌ Failed to update position for bancal: ${bancal.name}", exception)
+                        _error.value = "Error al actualizar posición: ${exception.message}"
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Exception updating bancal position: ${e.message}", e)
+                _error.value = "Error al mover bancal: ${e.message}"
             }
         }
     }

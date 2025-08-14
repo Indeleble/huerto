@@ -226,8 +226,8 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                             bancalViewModel.selectBancal(clickedBancal)
                         },
                         onBancalMoved = { movedBancal, newX, newY ->
-                            // TODO: Implementar actualización de posición
-                            println("Bancal ${movedBancal.name} moved to ($newX, $newY)")
+                            Log.d("BancalesScreen", "🚀 Bancal ${movedBancal.name} moved to ($newX, $newY)")
+                            bancalViewModel.updateBancalPosition(movedBancal, newX, newY)
                         }
                     )
                 }

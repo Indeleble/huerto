@@ -21,6 +21,9 @@ interface BancalDao {
     @Update
     suspend fun updateBancal(bancal: Bancal)
     
+    @Query("UPDATE bancales SET x = :x, y = :y WHERE id = :bancalId")
+    suspend fun updateBancalPosition(bancalId: String, x: Float, y: Float)
+    
     @Delete
     suspend fun deleteBancal(bancal: Bancal)
     
