@@ -8,8 +8,8 @@ import com.wyllyw.huertoplan.data.dao.*
 import com.wyllyw.huertoplan.model.*
 
 @Database(
-    entities = [User::class, Terrain::class, Sector::class, Bancal::class],
-    version = 2,
+    entities = [User::class, Terrain::class, Sector::class, Bancal::class, Plant::class],
+    version = 4,
     exportSchema = false
 )
 abstract class HuertoPlanDatabase : RoomDatabase() {
@@ -17,6 +17,7 @@ abstract class HuertoPlanDatabase : RoomDatabase() {
     abstract fun terrainDao(): TerrainDao
     abstract fun sectorDao(): SectorDao
     abstract fun bancalDao(): BancalDao
+    abstract fun plantDao(): PlantDao
     
     companion object {
         @Volatile

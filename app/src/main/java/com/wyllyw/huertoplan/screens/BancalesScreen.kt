@@ -3,7 +3,9 @@ package com.wyllyw.huertoplan.screens
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +64,7 @@ import com.wyllyw.huertoplan.model.Terrain
 import com.wyllyw.huertoplan.model.User
 import com.wyllyw.huertoplan.screens.popups.CreateSectorDialog
 import com.wyllyw.huertoplan.screens.popups.CreateBancalDialog
+import com.wyllyw.huertoplan.screens.popups.EditBancalDialog
 import com.wyllyw.huertoplan.presentation.viewmodel.UserViewModel
 import com.wyllyw.huertoplan.presentation.viewmodel.BancalViewModel
 import android.widget.Toast
@@ -84,12 +87,14 @@ fun BancalesScreen(navController: NavController, userViewModel: UserViewModel) {
 
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BancalDraggable(
     bancal: Bancal,
     scale: Float = 1.0f,
     isMovementEnabled: Boolean = true,
     onBancalClick: (Bancal) -> Unit,
+    onBancalDoubleClick: (Bancal) -> Unit,
     onBancalMoved: (Bancal, Float, Float) -> Unit
 ) {
     var isDragging by remember { mutableStateOf(false) }
@@ -208,11 +213,18 @@ fun BancalDraggable(
                     }
                 }
             }
-            .clickable {
-                if (!isDragging) {
-                    onBancalClick(bancal)
+            .combinedClickable(
+                onClick = {
+                    if (!isDragging) {
+                        onBancalClick(bancal)
+                    }
+                },
+                onDoubleClick = {
+                    if (!isDragging) {
+                        onBancalDoubleClick(bancal)
+                    }
                 }
-            },
+            ),
         contentAlignment = Alignment.TopCenter
     ) {
         Text(
@@ -245,6 +257,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
     val bancalMovementEnabled by bancalViewModel.bancalMovementEnabled.collectAsStateWithLifecycle()
     
     var showCreateBancalDialog by rememberSaveable { mutableStateOf(false) }
+    var showEditBancalDialog by rememberSaveable { mutableStateOf(false) }
     val freeScrollState = rememberFreeScrollState()
 
     // Configurar el userId en el BancalViewModel cuando el usuario esté disponible
@@ -352,6 +365,10 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                         isMovementEnabled = bancalMovementEnabled,
                         onBancalClick = { clickedBancal ->
                             bancalViewModel.selectBancal(clickedBancal)
+                        },
+                        onBancalDoubleClick = { doubleClickedBancal ->
+                            bancalViewModel.selectBancal(doubleClickedBancal)
+                            showEditBancalDialog = true
                         },
                         onBancalMoved = { movedBancal, newX, newY ->
                             Log.d("BancalesScreen", "🚀 Bancal ${movedBancal.name} moved to ($newX, $newY)")
@@ -469,6 +486,29 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
         onConfirm = { name, width, height ->
             bancalViewModel.createBancal(name, width, height)
             showCreateBancalDialog = false
+        }
+    )
+    
+    // Dialog para editar bancal
+    EditBancalDialog(
+        showDialog = showEditBancalDialog,
+        bancal = bancalViewModel.selectedBancal.collectAsStateWithLifecycle().value,
+        isLoading = isLoading,
+        onDismiss = { 
+            showEditBancalDialog = false
+            bancalViewModel.clearSelection()
+        },
+        onConfirm = { name, width, height ->
+            bancalViewModel.selectedBancal.value?.let { bancal ->
+                bancalViewModel.updateBancal(bancal, name, width, height)
+            }
+            showEditBancalDialog = false
+        },
+        onDelete = {
+            bancalViewModel.selectedBancal.value?.let { bancal ->
+                bancalViewModel.deleteBancal(bancal)
+            }
+            showEditBancalDialog = false
         }
     )
 

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.wyllyw.huertoplan.domain.usecase.bancal.CreateBancalUseCase
 import com.wyllyw.huertoplan.domain.usecase.bancal.GetBancalesBySectorIdUseCase
 import com.wyllyw.huertoplan.domain.usecase.bancal.UpdateBancalPositionUseCase
+import com.wyllyw.huertoplan.domain.usecase.bancal.UpdateBancalUseCase
+import com.wyllyw.huertoplan.domain.usecase.bancal.DeleteBancalUseCase
 import com.wyllyw.huertoplan.domain.usecase.terrain.GetTerrainsByUserIdUseCase
 import com.wyllyw.huertoplan.domain.usecase.sector.GetSectorsByTerrainIdUseCase
 import com.wyllyw.huertoplan.model.Bancal
@@ -22,6 +24,8 @@ class BancalViewModel @Inject constructor(
     private val getBancalesBySectorIdUseCase: GetBancalesBySectorIdUseCase,
     private val createBancalUseCase: CreateBancalUseCase,
     private val updateBancalPositionUseCase: UpdateBancalPositionUseCase,
+    private val updateBancalUseCase: UpdateBancalUseCase,
+    private val deleteBancalUseCase: DeleteBancalUseCase,
     private val getTerrainsByUserIdUseCase: GetTerrainsByUserIdUseCase,
     private val getSectorsByTerrainIdUseCase: GetSectorsByTerrainIdUseCase
 ) : ViewModel() {
@@ -310,6 +314,56 @@ class BancalViewModel @Inject constructor(
         _scale.value = 1.0f
         Log.d(TAG, "🔍 Zoom Reset: Escala cambiada de ${(currentScale * 100).toInt()}% a 100%")
         Log.d(TAG, "📱 StateFlow scale reset to: 1.0 - UI should recompose")
+    }
+
+    fun updateBancal(bancal: Bancal, name: String, width: Float, height: Float) {
+        Log.d(TAG, "🔄 Updating bancal: ${bancal.name} -> $name, dimensions: ${width}x${height}")
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            
+            try {
+                updateBancalUseCase(bancal.id, name, width, height)
+                    .onSuccess { updatedBancal ->
+                        Log.d(TAG, "✅ Bancal updated successfully: ${updatedBancal.name}")
+                        _selectedBancal.value = updatedBancal
+                    }
+                    .onFailure { exception ->
+                        Log.e(TAG, "❌ Failed to update bancal", exception)
+                        _error.value = "Error al actualizar bancal: ${exception.message}"
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Exception updating bancal: ${e.message}", e)
+                _error.value = "Error al actualizar bancal: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteBancal(bancal: Bancal) {
+        Log.d(TAG, "🗑️ Deleting bancal: ${bancal.name}")
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            
+            try {
+                deleteBancalUseCase(bancal.id)
+                    .onSuccess {
+                        Log.d(TAG, "✅ Bancal deleted successfully: ${bancal.name}")
+                        _selectedBancal.value = null
+                    }
+                    .onFailure { exception ->
+                        Log.e(TAG, "❌ Failed to delete bancal", exception)
+                        _error.value = "Error al eliminar bancal: ${exception.message}"
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Exception deleting bancal: ${e.message}", e)
+                _error.value = "Error al eliminar bancal: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     fun toggleBancalMovement() {
