@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,40 +88,54 @@ fun BancalesScreen(navController: NavController, userViewModel: UserViewModel) {
 fun BancalDraggable(
     bancal: Bancal,
     scale: Float = 1.0f,
+    isMovementEnabled: Boolean = true,
     onBancalClick: (Bancal) -> Unit,
     onBancalMoved: (Bancal, Float, Float) -> Unit
 ) {
-    // Posiciones escaladas para la visualización
-    var offsetX by remember { mutableStateOf(bancal.x * scale) }
-    var offsetY by remember { mutableStateOf(bancal.y * scale) }
     var isDragging by remember { mutableStateOf(false) }
-    var lastScale by remember { mutableStateOf(scale) }
     
-    // Actualizar posiciones cuando cambie el bancal (pero no solo la escala)
-    LaunchedEffect(bancal.id, bancal.x, bancal.y) {
-        if (!isDragging) {
-            offsetX = bancal.x * scale
-            offsetY = bancal.y * scale
-            Log.d("BancalDraggable", "📍 Updated positions for ${bancal.name}: scaled pos ($offsetX, $offsetY) from real pos (${bancal.x}, ${bancal.y}) at scale $scale")
-            Log.d("BancalDraggable", "📐 Visual size: ${bancal.width * 2}×${bancal.height} (real: ${bancal.width}×${bancal.height})")
+    // Posición base del bancal (siempre sincronizada con la BD)
+    var baseOffsetX by remember { mutableStateOf(bancal.x * scale) }
+    var baseOffsetY by remember { mutableStateOf(bancal.y * scale) }
+    
+    // Offset temporal durante el arrastre
+    var dragOffsetX by remember { mutableStateOf(0f) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    
+    // Variable para evitar actualizaciones inmediatamente después de un drag
+    var justFinishedDrag by remember { mutableStateOf(false) }
+    
+    // Actualizar posición base cuando cambien los valores en la BD (solo si no estamos arrastrando)
+    LaunchedEffect(bancal.x, bancal.y, scale) {
+        if (!isDragging && !justFinishedDrag) {
+            val newBaseX = bancal.x * scale
+            val newBaseY = bancal.y * scale
+            
+            // Solo actualizar si hay una diferencia significativa (evita micro-movimientos)
+            val threshold = 1f
+            if (kotlin.math.abs(baseOffsetX - newBaseX) > threshold || 
+                kotlin.math.abs(baseOffsetY - newBaseY) > threshold) {
+                baseOffsetX = newBaseX
+                baseOffsetY = newBaseY
+                Log.d("BancalDraggable", "📍 Base position updated for ${bancal.name}: ($baseOffsetX, $baseOffsetY) from real (${bancal.x}, ${bancal.y}) at scale $scale")
+            }
         }
-    }
-    
-    // Manejar cambios de escala manteniendo la posición relativa
-    LaunchedEffect(scale) {
-        if (!isDragging && scale != lastScale) {
-            val scaleRatio = scale / lastScale
-            offsetX *= scaleRatio
-            offsetY *= scaleRatio
-            Log.d("BancalDraggable", "🔄 Scale changed from $lastScale to $scale: adjusting positions by ratio $scaleRatio")
-            Log.d("BancalDraggable", "📍 New scaled positions: ($offsetX, $offsetY)")
-            lastScale = scale
+        
+        // Reset flag después de un breve delay
+        if (justFinishedDrag) {
+            kotlinx.coroutines.delay(100)
+            justFinishedDrag = false
         }
     }
 
     Box(
         modifier = Modifier
-            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            .offset { 
+                IntOffset(
+                    (baseOffsetX + dragOffsetX).roundToInt(), 
+                    (baseOffsetY + dragOffsetY).roundToInt()
+                ) 
+            }
             .size(
                 width = (bancal.width * 2 * 70 * scale).dp,  // Ancho visual = ancho real × 2
                 height = (bancal.height * 70 * scale).dp      // Alto normal
@@ -132,47 +147,64 @@ fun BancalDraggable(
                     MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(8.dp)
             )
-            .pointerInput(bancal.id) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        Log.d("BancalDraggable", "🎯 Drag started for bancal: ${bancal.name} at offset: $offset")
-                        isDragging = true
-                    },
-                    onDragEnd = {
-                        val realX = offsetX / scale
-                        val realY = offsetY / scale
-                        Log.d("BancalDraggable", "🎯 Drag ended for bancal: ${bancal.name} final scaled position: ($offsetX, $offsetY), real position: ($realX, $realY)")
-                        isDragging = false
-                        // Las posiciones ya se actualizarán automáticamente por LaunchedEffect cuando se actualice el bancal en la DB
-                    },
-                    onDragCancel = {
-                        Log.d("BancalDraggable", "🎯 Drag cancelled for bancal: ${bancal.name}")
-                        isDragging = false
-                    }
-                ) { change, dragAmount ->
-                    // Umbral mínimo para distinguir drag de scroll accidental
-                    val minDragThreshold = 3f
-                    if (kotlin.math.abs(dragAmount.x) > minDragThreshold || kotlin.math.abs(dragAmount.y) > minDragThreshold) {
+            .pointerInput(bancal.id, isMovementEnabled) {
+                if (isMovementEnabled) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            Log.d("BancalDraggable", "🎯 Drag started for bancal: ${bancal.name} at offset: $offset")
+                            isDragging = true
+                            // Reset drag offsets
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                        },
+                        onDragEnd = {
+                            Log.d("BancalDraggable", "🎯 Drag ended for bancal: ${bancal.name}")
+                            
+                            // Calcular nueva posición real basándose en la posición base + el offset acumulado
+                            val finalVisualX = baseOffsetX + dragOffsetX
+                            val finalVisualY = baseOffsetY + dragOffsetY
+                            val realX = finalVisualX / scale
+                            val realY = finalVisualY / scale
+                            
+                            Log.d("BancalDraggable", "💾 Final position: visual ($finalVisualX, $finalVisualY), real ($realX, $realY)")
+                            
+                            // Actualizar inmediatamente la posición base para evitar el movimiento fantasma
+                            baseOffsetX = finalVisualX
+                            baseOffsetY = finalVisualY
+                            
+                            // Reset estado de arrastre
+                            isDragging = false
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                            justFinishedDrag = true
+                            
+                            onBancalMoved(bancal, realX, realY)
+                        },
+                        onDragCancel = {
+                            Log.d("BancalDraggable", "🎯 Drag cancelled for bancal: ${bancal.name}")
+                            isDragging = false
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                        }
+                    ) { change, dragAmount ->
+                        // Movimiento fluido acumulando el desplazamiento
                         change.consume()
-                        offsetX += dragAmount.x
-                        offsetY += dragAmount.y
+                        dragOffsetX += dragAmount.x
+                        dragOffsetY += dragAmount.y
                         
-                        // Limitar movimiento dentro del área de trabajo (considerar escalado inverso)
-                        val workspaceScale = 1f / scale  // Escalado inverso del área
-                        val visualWidth = bancal.width * 2 * 70 * scale * density   // Ancho visual del bancal
-                        val visualHeight = bancal.height * 70 * scale * density      // Alto visual del bancal
-                        val maxX = 3000f * density * workspaceScale - visualWidth   // Área más grande con zoom out
-                        val maxY = 2000f * density * workspaceScale - visualHeight
-                        offsetX = offsetX.coerceIn(0f, maxX)
-                        offsetY = offsetY.coerceIn(0f, maxY)
+                        // Limitar movimiento dentro del área de trabajo
+                        val workspaceScale = 1f / scale
+                        val visualWidth = bancal.width * 2 * 70 * scale * density
+                        val visualHeight = bancal.height * 70 * scale * density
+                        val maxX = 3000f * density * workspaceScale - visualWidth - baseOffsetX
+                        val maxY = 2000f * density * workspaceScale - visualHeight - baseOffsetY
+                        val minX = -baseOffsetX
+                        val minY = -baseOffsetY
                         
-                        // Convertir posición escalada a posición real (sin escalar) para almacenar
-                        val realX = offsetX / scale
-                        val realY = offsetY / scale
+                        dragOffsetX = dragOffsetX.coerceIn(minX, maxX)
+                        dragOffsetY = dragOffsetY.coerceIn(minY, maxY)
                         
-                        Log.d("BancalDraggable", "🔄 Scaling: visual pos ($offsetX, $offsetY) -> real pos ($realX, $realY) at scale $scale")
-                        Log.d("BancalDraggable", "💾 Saving real position for ${bancal.name}: ($realX, $realY)")
-                        onBancalMoved(bancal, realX, realY)
+                        Log.d("BancalDraggable", "🔄 Smooth movement: drag offset ($dragOffsetX, $dragOffsetY) at scale $scale")
                     }
                 }
             }
@@ -210,6 +242,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
     val selectedTerrain by bancalViewModel.selectedTerrain.collectAsStateWithLifecycle()
     val selectedSector by bancalViewModel.selectedSector.collectAsStateWithLifecycle()
     val scale by bancalViewModel.scale.collectAsStateWithLifecycle()
+    val bancalMovementEnabled by bancalViewModel.bancalMovementEnabled.collectAsStateWithLifecycle()
     
     var showCreateBancalDialog by rememberSaveable { mutableStateOf(false) }
     val freeScrollState = rememberFreeScrollState()
@@ -273,7 +306,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                     .size(width = (3000 * workspaceScale).dp, height = (2000 * workspaceScale).dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f))
             ) {
-                // Grid pattern de fondo (opcional)
+                // Grid pattern de fondo (sin puntos de snap)
                 GridPattern(
                     modifier = Modifier.fillMaxSize(),
                     scale = 1.0f  // Grid con tamaño fijo, independiente del zoom
@@ -316,6 +349,7 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
                     BancalDraggable(
                         bancal = bancal,
                         scale = scale,
+                        isMovementEnabled = bancalMovementEnabled,
                         onBancalClick = { clickedBancal ->
                             bancalViewModel.selectBancal(clickedBancal)
                         },
@@ -339,6 +373,27 @@ fun BancalesBodyContent(userViewModel: UserViewModel, bancalViewModel: BancalVie
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Switch para habilitar/deshabilitar movimiento de bancales
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (bancalMovementEnabled) "🔓 Movimiento activado" else "🔒 Movimiento bloqueado",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                
+                Switch(
+                    checked = bancalMovementEnabled,
+                    onCheckedChange = { bancalViewModel.toggleBancalMovement() }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
             // Botón de crear bancal con controles de zoom
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -587,14 +642,14 @@ fun TerrainSectorSelectors(bancalViewModel: BancalViewModel) {
 @Composable
 fun GridPattern(
     modifier: Modifier = Modifier,
-    gridSize: Float = 100f, // Tamaño de cada celda del grid en dp convertido a píxeles
+    gridSize: Float = 100f, // Tamaño de cada celda del grid en dp
     scale: Float = 1.0f,
     color: Color = Color.Gray.copy(alpha = 0.2f)
 ) {
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-        val gridSizePx = gridSize * scale // Aplicar escala al tamaño del grid
+        val gridSizePx = gridSize * scale
 
         // Líneas verticales
         var x = 0f

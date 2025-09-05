@@ -62,6 +62,10 @@ class BancalViewModel @Inject constructor(
     private val _scale = MutableStateFlow(1.0f) // Escala por defecto
     val scale = _scale.asStateFlow()
 
+    // Control del switch de movimiento de bancales
+    private val _bancalMovementEnabled = MutableStateFlow(true) 
+    val bancalMovementEnabled = _bancalMovementEnabled.asStateFlow()
+
     private val _currentUserId = MutableStateFlow<String?>(null)
     
     fun setUserId(userId: String) {
@@ -306,6 +310,12 @@ class BancalViewModel @Inject constructor(
         _scale.value = 1.0f
         Log.d(TAG, "🔍 Zoom Reset: Escala cambiada de ${(currentScale * 100).toInt()}% a 100%")
         Log.d(TAG, "📱 StateFlow scale reset to: 1.0 - UI should recompose")
+    }
+
+    fun toggleBancalMovement() {
+        val currentValue = _bancalMovementEnabled.value
+        _bancalMovementEnabled.value = !currentValue
+        Log.d(TAG, "🔄 Bancal movement toggled: ${!currentValue}")
     }
 
     fun hasSelections(): Boolean {
